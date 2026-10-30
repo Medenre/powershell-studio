@@ -22,19 +22,6 @@ python -m http.server 8000
 
 Puis ouvrir http://localhost:8000. Python est facultatif et ne sert qu’à cet aperçu local.
 
-## Publication sur GitHub Pages
-
-1. Sur GitHub, créer un dépôt nommé `powershell-studio`. Un dépôt public convient à GitHub Pages avec GitHub Free : son code et le site seront accessibles publiquement.
-2. Décompresser cette archive sur le PC.
-3. Dans le dépôt, choisir **Add file → Upload files** et déposer le contenu du dossier : `index.html`, `app.js`, `style.css`, `README.md` et `.nojekyll`. Ne pas déposer le ZIP ni le dossier parent : `index.html` doit être à la racine du dépôt.
-4. Valider avec **Commit changes** sur la branche `main`.
-5. Aller dans **Settings → Pages → Build and deployment**.
-6. Choisir **Source : Deploy from a branch**, puis la branche **main** et le dossier **/(root)**, puis **Save**.
-7. Attendre la fin du déploiement. GitHub affiche l’adresse du site dans la page **Settings → Pages**. Les exécutions sont visibles dans **Actions**.
-
-Il n’y a aucune commande de build à configurer. Les liens CSS et JavaScript sont relatifs et fonctionnent avec un site de projet GitHub Pages. Le fichier `.nojekyll` évite le traitement Jekyll ; il peut être masqué dans l’explorateur de fichiers.
-
-Documentation : https://docs.github.com/en/pages/getting-started-with-github-pages/configuring-a-publishing-source-for-your-github-pages-site
 
 ## Reprendre les projets de l’ancien site
 
@@ -74,12 +61,4 @@ Si le fichier téléchargé est bloqué par la politique RemoteSigned, et après
 - `.nojekyll` : publication statique GitHub Pages.
 - `README.md` : ce guide.
 
-## Police, fond et ordre des calques
 
-- Dans Apparence, choisir la police, la taille, le gras, l’italique et le souligné. Les styles sont combinables et exportés vers PowerShell 2.0 à 7. La police doit être installée sur le poste Windows pour un rendu identique.
-- Fond opaque ou transparent pour Label, CheckBox, RadioButton, GroupBox et Panel. Sous Windows Forms, « transparent » reprend le fond du parent (ici la fenêtre) et ne révèle pas les composants placés derrière. La fenêtre et les autres contrôles restent opaques. Documentation : https://learn.microsoft.com/fr-fr/dotnet/desktop/winforms/controls/how-to-give-your-control-a-transparent-background
-- Dans l’explorateur, glisser un élément au-dessus ou au-dessous d’un autre : le haut représente le premier plan. Le trait indique la position de dépôt. Alt + flèche haut/bas permet aussi de réordonner le calque au clavier.
-- L’ordre est conservé dans le fichier projet et dans le script exporté. Annuler/rétablir prend en charge les déplacements de calques.
-- Les anciens fichiers projet restent compatibles ; les nouvelles propriétés sont initialisées avec des valeurs par défaut.
-
-Vérifications : interface web, glisser-déposer, génération pour les cinq versions cibles et compatibilité des anciens projets. Le script natif n’a pas été exécuté sous Windows dans cet environnement.
