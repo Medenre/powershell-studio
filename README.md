@@ -2,9 +2,11 @@
 
 Éditeur visuel d’interfaces Windows Forms avec export PowerShell. Application statique en français, sans dépendance, sans compilation et sans serveur applicatif.
 
+**Version de l’application : 1.0.0** (31 octobre 2026). Cette numérotation est distincte du format de projet JSON (`version: 1`) et de la version PowerShell ciblée.
+
 ## Fonctionnalités
 
-- 12 composants à glisser-déposer, propriétés, couleurs, police et actions de boutons.
+- 13 composants à glisser-déposer, propriétés, couleurs, police et actions de boutons.
 - Redimensionnement par les quatre côtés et le coin inférieur droit.
 - Zoom et dézoom avec recentrage automatique.
 - Thème clair/sombre mémorisé.
@@ -26,7 +28,7 @@ Puis ouvrir http://localhost:8000. Python est facultatif et ne sert qu’à cet 
 
 1. Sur GitHub, créer un dépôt nommé `powershell-studio`. Un dépôt public convient à GitHub Pages avec GitHub Free : son code et le site seront accessibles publiquement.
 2. Décompresser cette archive sur le PC.
-3. Dans le dépôt, choisir **Add file → Upload files** et déposer le contenu du dossier : `index.html`, `app.js`, `style.css`, `README.md` et `.nojekyll`. Ne pas déposer le ZIP ni le dossier parent : `index.html` doit être à la racine du dépôt.
+3. Dans le dépôt, choisir **Add file → Upload files** et déposer le contenu du dossier : `index.html`, `core.js`, `app.js`, `style.css`, `responsive.css`, `README.md` et `.nojekyll`. Ne pas déposer le ZIP ni le dossier parent : `index.html` doit être à la racine du dépôt.
 4. Valider avec **Commit changes** sur la branche `main`.
 5. Aller dans **Settings → Pages → Build and deployment**.
 6. Choisir **Source : Deploy from a branch**, puis la branche **main** et le dossier **/(root)**, puis **Save**.
@@ -68,11 +70,14 @@ Si le fichier téléchargé est bloqué par la politique RemoteSigned, et après
 
 ## Fichiers
 
-- `index.html` : structure de l’application.
+- `index.html` : structure de l’application et chargement des scripts statiques.
 - `style.css` : styles, thèmes et poignées.
-- `app.js` : édition, sauvegarde, zoom et génération PowerShell.
+- `responsive.css` : adaptation aux écrans étroits et panneaux repliables.
+- `core.js` : modèle de projet, validation et génération PowerShell.
+- `app.js` : édition, sauvegarde, zoom et interactions de l’interface.
 - `.nojekyll` : publication statique GitHub Pages.
 - `README.md` : ce guide.
+- `verify.cjs`, `verify-native.ps1` et `verify-browser.cjs` : vérifications locales facultatives ; ils ne sont pas chargés par le site.
 
 ## Police, fond et ordre des calques
 
@@ -82,7 +87,7 @@ Si le fichier téléchargé est bloqué par la politique RemoteSigned, et après
 - L’ordre est conservé dans le fichier projet et dans le script exporté. Annuler/rétablir prend en charge les déplacements de calques.
 - Les anciens fichiers projet restent compatibles ; les nouvelles propriétés sont initialisées avec des valeurs par défaut.
 
-Vérifications : interface web, glisser-déposer, génération pour les cinq versions cibles et compatibilité des anciens projets. Le script natif n’a pas été exécuté sous Windows dans cet environnement.
+Vérifications : `node verify.cjs` teste le modèle, la géométrie, la validation et les cinq cibles de génération. Sur Windows avec PowerShell 5.1, `node verify.cjs --native` vérifie la syntaxe des cinq scripts et exécute les formulaires ciblant 2.0 à 5.1 avec fermeture automatique. `node verify-browser.cjs` vérifie le chargement de la page avec Chrome ou Edge installé. Un résultat sur PowerShell 5.1 ne remplace pas un essai sur les moteurs PowerShell 2.0, 3.0 et 4.0 eux-mêmes. La cible 7 s’exécute avec `pwsh.exe` lorsqu’il est installé.
 
 ## Nouveautés — images et mise en page
 
@@ -95,6 +100,17 @@ Vérifications : interface web, glisser-déposer, génération pour les cinq ver
 - Infobulles au survol, ordre de tabulation, champs texte en lecture seule et mode mot de passe. Ce dernier masque l’affichage uniquement : ne pas enregistrer un véritable mot de passe dans le projet.
 - Explorateur toujours accessible avec défilement indépendant des propriétés.
 
-Ouvrir `index.html` pour utiliser l’application. Facultatif : `node verify.cjs` exécute les vérifications de génération et de géométrie sans dépendance. Les nouveaux réglages sont enregistrés dans le projet JSON. En sélection multiple, les propriétés individuelles concernent le dernier élément sélectionné ; les outils Mise en page concernent toute la sélection.
+Ouvrir `index.html` pour utiliser l’application. Facultatif : `node verify.cjs` exécute les vérifications du modèle et du générateur sans dépendance. Les nouveaux réglages sont enregistrés dans le projet JSON. En sélection multiple, les propriétés individuelles concernent le dernier élément sélectionné ; les outils Mise en page concernent toute la sélection.
 
-La génération a été vérifiée pour PowerShell 2.0, 3.0, 4.0, 5.1 et 7.0. L’exécution native Windows doit encore être validée sur le poste cible.
+## Historique des versions
+
+### 1.0.0 — 31 octobre 2026
+
+- Première version numérotée dans ce README. Pour chaque mise à jour suivante, incrémenter la version de l’application et ajouter ici les changements effectués ; conserver séparément la version du format JSON et les versions PowerShell cibles.
+- Modèle, validation et générateur déplacés dans `core.js` pour des tests directs, sans compilation et sans dépendance pour GitHub Pages.
+- Import JSON renforcé : limites de longueur, contrôle strict des types et des noms, noms uniques sans distinction de casse et recentrage des anciens contrôles dépassant la fenêtre.
+- Saisie regroupée dans l’historique et sauvegarde automatique différée pour limiter les écritures et les copies d’images.
+- Palette et propriétés repliables sur écran étroit dans `responsive.css`, avec un zoom initial adapté aux petites largeurs.
+- Correction du constructeur de police dans les scripts ciblant PowerShell 2.0 à 4.0, découverte par le test natif.
+- Vérifications directes des cinq cibles, contrôle du chargement dans Chrome ou Edge et exécution automatique des formulaires ciblant 2.0 à 5.1 sur PowerShell 5.1 ; syntaxe de la cible 7 vérifiée.
+- Documentation mise à jour et fichier `.nojekyll` ajouté pour la publication sur GitHub Pages.
