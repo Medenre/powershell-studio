@@ -2,7 +2,7 @@
 
 Éditeur visuel d’interfaces Windows Forms avec export PowerShell. Application statique en français, sans dépendance, sans compilation et sans serveur applicatif.
 
-**Version de l’application : 1.4.0** (31 octobre 2026). Cette numérotation est distincte du format de projet JSON (`version: 1`) et de la version PowerShell ciblée.
+**Version de l’application : 1.5.0** (1er novembre 2026). Cette numérotation est distincte du format de projet JSON (`version: 1`) et de la version PowerShell ciblée.
 
 ## Fonctionnalités
 
@@ -10,7 +10,7 @@
 - Redimensionnement par les quatre côtés et le coin inférieur droit.
 - Zoom et dézoom avec recentrage automatique.
 - Dans le canevas, glisser au clic gauche sur le fond vide autour de la fenêtre pour déplacer la vue ; cliquer avec la molette pour recentrer l’interface.
-- Fenêtre **Paramètres** : huit palettes de couleurs en version claire ou sombre, accent personnalisé et mémorisation locale.
+- Fenêtre **Paramètres** : huit palettes de couleurs en version claire ou sombre, accent personnalisé, choix français/anglais et mémorisation locale.
 - Onglet **Visual scripting** : événements des composants, blocs d’interface, variables, conditions à créer par listes de choix, boucles, fichiers, actions et code PowerShell libre.
 - Choix de PowerShell 2.0, 3.0, 4.0, 5.1 ou 7 dans les propriétés de la fenêtre.
 - Régénération du code et téléchargement direct d’un `.ps1` UTF-8 avec BOM.
@@ -30,7 +30,11 @@ Puis ouvrir http://localhost:8000. Python est facultatif et ne sert qu’à cet 
 
 Le bouton **Paramètres** ouvre le choix de l’apparence claire ou sombre, des huit palettes et d’une couleur d’accent personnalisée. Ces préférences concernent l’éditeur et sont mémorisées dans ce navigateur ; les couleurs du formulaire exporté se règlent dans les propriétés des composants.
 
+Le même panneau propose **🇫🇷 Français** et **🇬🇧 English**. Le choix traduit les libellés de l’éditeur, les menus du Visual scripting et leurs aides. Les textes saisis dans le projet et le script PowerShell exporté conservent leur contenu. Le choix de langue est enregistré dans le navigateur.
+
 Dans **Conception**, ajouter les composants. Ouvrir **Visual scripting**, choisir le composant et son événement (par exemple **Bouton → Click**), puis ajouter les blocs depuis la colonne de gauche. Les flèches changent leur ordre ; les boutons à l’intérieur d’une branche ajoutent des blocs imbriqués. Dans un champ « Valeur », choisir **Texte fixe** pour du texte échappé automatiquement ou **Expression PowerShell** pour une expression évaluée au moment de l’événement. Le bloc d’écriture de fichier propose ce choix séparément pour le chemin et le contenu. Les variables visuelles sont accessibles sous la forme `$StudioVars['nom']` dans les expressions et le code libre.
+
+Survoler un bloc ou cliquer sur son icône **ⓘ** pour afficher une courte explication de son rôle.
 
 Exemple : pour changer un libellé trois fois au clic d’un bouton, ajouter **Répéter N fois** avec `3`, puis **Changer un texte** dans sa branche **Faire** ; sélectionner le libellé et renseigner `$StudioVars['i']` en mode expression. Le compteur commence à zéro. La vue **Code PowerShell** montre le résultat complet avant l’export. Pour un bouton, le code manuel de la propriété **Événement · Click** reste pris en charge et s’exécute après les blocs visuels.
 
@@ -88,6 +92,7 @@ Si le fichier téléchargé est bloqué par la politique RemoteSigned, et après
 - `style.css` : styles, thèmes et poignées.
 - `responsive.css` : adaptation aux écrans étroits et panneaux repliables.
 - `themes.css`, `settings.js` : palettes, réglages et mémorisation locale.
+- `i18n.js` : traduction français/anglais de l’éditeur et mémorisation de la langue.
 - `visual.css`, `visual-ui.js`, `visual-core.js` : éditeur de blocs et génération des événements PowerShell.
 - `core.js` : modèle de projet, validation et génération PowerShell.
 - `app.js` : édition, sauvegarde, zoom et interactions de l’interface.
@@ -119,6 +124,14 @@ Vérifications : `node verify.cjs` teste le modèle, la géométrie, la validati
 Ouvrir `index.html` pour utiliser l’application. Facultatif : `node verify.cjs` exécute les vérifications du modèle et du générateur sans dépendance. Les nouveaux réglages sont enregistrés dans le projet JSON. En sélection multiple, les propriétés individuelles concernent le dernier élément sélectionné ; les outils Mise en page concernent toute la sélection.
 
 ## Historique des versions
+
+### 1.5.0 — 1er novembre 2026
+
+- Suppression des bordures latérales et inférieures autour du Visual scripting et de ses panneaux ; retrait de l’encadré d’aide bleu de la palette de conception.
+- Onglets Conception, Code PowerShell et Visual scripting centrés sur la zone de travail aux largeurs de bureau compatibles, sans chevauchement des autres commandes.
+- Infobulle explicative pour chacun des blocs visuels, disponible au survol ou par l’icône **ⓘ**.
+- Choix de langue **français/anglais** avec drapeaux dans Paramètres ; traduction des commandes et des menus, sans modifier le projet ni l’export PowerShell.
+- Vérifications dans Chrome des deux langues, des infobulles, du centrage et de la conservation des textes saisis.
 
 ### 1.4.0 — 31 octobre 2026
 

@@ -1,19 +1,24 @@
+@media(min-width:1151px){nav{position:relative}nav .tabs{position:absolute;top:0;bottom:0;left:calc(234px + (100% - 506px)/2);transform:translateX(-50%)}body.visual-active nav .tabs{left:50%}}
+@media(min-width:1151px) and (max-width:1300px){nav>div:first-child button{padding-inline:6px}nav .tabs{gap:10px}nav .tabs button{padding-inline:6px}}
 body.visual-active{display:flex;flex-direction:column;height:100vh;height:100dvh;overflow:hidden}
 body.visual-active header,body.visual-active nav{flex:none}
 body.visual-active main{grid-template-columns:minmax(0,1fr);flex:1;height:auto;min-height:0;overflow:hidden}
 body.visual-active main>.palette,body.visual-active main>.properties{display:none}
 body.visual-active .workspace{min-height:0;overflow:hidden}
 body.visual-active .workspace-heading,body.visual-active .workspace footer{display:none}
-#visualView{display:flex;flex:1;min-height:0;flex-direction:column;margin:0 12px 12px;border:1px solid var(--border);border-radius:9px;background:var(--surface,#fff);overflow:hidden}
+#visualView{display:flex;flex:1;min-height:0;flex-direction:column;margin:0;border:0;border-radius:0;background:var(--surface,#fff);overflow:hidden}
 #visualView[hidden]{display:none}
 .vs-toolbar{display:flex;align-items:center;gap:12px;flex:none;flex-wrap:wrap;padding:9px 14px;border-bottom:1px solid var(--border)}
 .vs-toolbar h2,.vs-toolbar p{display:none}.vs-toolbar label{display:flex;align-items:center;gap:7px;font-size:11px;color:var(--muted)}
 .vs-toolbar select{min-width:160px}.vs-toolbar p{margin:0 0 0 auto;font-size:11px;color:var(--muted)}
 .vs-layout{display:grid;grid-template-columns:218px minmax(0,1fr) 300px;flex:1;min-height:0;overflow:hidden}
 .vs-palette,.vs-flow,.vs-preview{min-height:0;overflow-y:auto;overflow-x:hidden;padding:16px}
-.vs-palette{border-right:1px solid var(--border);background:var(--panel-soft,#f9faff)}
+.vs-palette{background:var(--panel-soft,#f9faff)}
 .vs-palette-group{margin-bottom:18px}.vs-palette h3{font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin:0 0 7px}
-.vs-palette button{display:block;width:100%;margin:4px 0;text-align:left;font-size:11px;background:var(--surface,#fff)}
+.vs-palette-item{display:flex;gap:4px;align-items:stretch;margin:4px 0}
+.vs-palette-item button{font-size:11px;background:var(--surface,#fff)}
+.vs-palette-item [data-add-kind]{flex:1;min-width:0;text-align:left}
+.vs-palette-item .vs-help-button{flex:none;width:28px;padding:4px;text-align:center;color:var(--accent)}
 .vs-flow{background:var(--flow-bg,#f3f5fa)}.vs-flow>p{font-size:11px;color:var(--muted);margin:0 0 16px}.vs-empty{border:1px dashed var(--border);border-radius:9px;padding:32px;text-align:center}
 .vs-block{border:1px solid var(--border);border-left:4px solid var(--accent);border-radius:8px;background:var(--surface,#fff);margin:0 0 12px;box-shadow:0 2px 8px #0001;overflow:hidden}
 .vs-block-head{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 10px;background:var(--accent-soft,#f2f0ff)}
@@ -34,8 +39,8 @@ body.visual-active .workspace-heading,body.visual-active .workspace footer{displ
 .vs-branch{margin:0 12px 12px 18px;padding:8px 0 0 12px;border-left:2px solid var(--accent);background:var(--branch-bg,#fafaff)}
 .vs-branch-title{font-size:10px;font-weight:700;text-transform:uppercase;color:var(--accent);margin-bottom:7px}
 .vs-add-nested{display:flex;gap:6px;padding:0 8px 10px 0}.vs-add-nested select{flex:1;min-width:0;font-size:10px}.vs-add-nested button{white-space:nowrap;font-size:10px}
-.vs-preview{border-left:1px solid var(--border);background:var(--surface,#fff)}.vs-preview h3{font-size:12px;margin:0 0 10px}
+.vs-preview{background:var(--surface,#fff)}.vs-preview h3{font-size:12px;margin:0 0 10px}
 .vs-preview p{font-size:11px;line-height:1.6;color:var(--muted)}.vs-preview code{font-family:Consolas,monospace}
 #visualCode{font:11px/1.6 Consolas,monospace;white-space:pre-wrap;overflow-wrap:anywhere;background:#202638;color:#d5dbee;border-radius:6px;padding:12px;max-height:45vh;overflow:auto}
 @media(max-width:1120px){.vs-layout{grid-template-columns:175px minmax(0,1fr)}.vs-preview{display:none}}
-@media(max-width:780px){#visualView{margin:0 8px 8px}.vs-toolbar{padding:8px 10px}.vs-layout{grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(120px,170px) minmax(0,1fr)}.vs-palette{max-height:170px;border-right:0;border-bottom:1px solid var(--border)}.vs-flow{min-height:0}}
+@media(max-width:780px){.vs-toolbar{padding:8px 10px}.vs-layout{grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(120px,170px) minmax(0,1fr)}.vs-palette{max-height:170px}.vs-flow{min-height:0}}

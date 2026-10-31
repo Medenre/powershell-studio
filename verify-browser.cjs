@@ -26,13 +26,19 @@ try {
   assert.match(result.stdout, /id="showPalette"/);
   const source = fs.readFileSync(path.join(__dirname, 'index.html'), 'utf8');
   let probe = source;
-  for (const asset of ['style.css', 'responsive.css', 'visual.css', 'themes.css', 'visual-core.js', 'core.js', 'app.js', 'visual-ui.js', 'settings.js']) {
+  for (const asset of ['style.css', 'responsive.css', 'visual.css', 'themes.css', 'visual-core.js', 'core.js', 'app.js', 'visual-ui.js', 'settings.js', 'i18n.js']) {
     probe = probe.replace(`"${asset}"`, `"${pathToFileURL(path.join(__dirname, asset)).href}"`);
   }
   probe = probe.replace('</body>', `<script>
     (() => {
     const viewport = document.getElementById('viewport');
     const wrap = document.getElementById('scaleWrap');
+    const tabsRect = document.querySelector('nav .tabs').getBoundingClientRect();
+    const headingRect = document.querySelector('.workspace-heading').getBoundingClientRect();
+    const tabsCentered = window.innerWidth <= 1150 || Math.abs(tabsRect.x + tabsRect.width / 2 - headingRect.x - headingRect.width / 2) < 2;
+    const tabsClear = window.innerWidth <= 1150 || (document.querySelector('nav>div:first-child').getBoundingClientRect().right < tabsRect.left
+      && tabsRect.right < document.getElementById('help').getBoundingClientRect().left);
+    const tipRemoved = !document.querySelector('.tip');
     const before = wrap.getBoundingClientRect();
     const width = state.form.w;
     const historyCount = undoStack.length;
@@ -58,6 +64,26 @@ try {
     const formHandleSmall = getComputedStyle(document.querySelector('#formHandles .handle-e')).width === '10px';
     document.getElementById('settings').click();
     const dialogOpened = document.getElementById('settingsDialog').open;
+    const languageSelect = document.getElementById('settingsLanguage');
+    const flagsAvailable = languageSelect.options[0].textContent.includes('🇫🇷') && languageSelect.options[1].textContent.includes('🇬🇧');
+    const scriptBeforeLanguage = generate();
+    languageSelect.value = 'en';
+    languageSelect.dispatchEvent(new Event('change', {bubbles:true}));
+    const frenchFragments = [];
+    const textWalker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+    while(textWalker.nextNode()){
+      const node = textWalker.currentNode;
+      if(node.parentElement.closest('#window,#projectTitle,#code,#visualCode,#settingsLanguage,textarea,script,style'))continue;
+      if(/[éèêàùûôîïçÉÈÊÀÙÔÇ]/.test(node.textContent))frenchFragments.push(node.textContent.trim().slice(0,90));
+    }
+    const englishSelected = document.documentElement.lang === 'en' && localStorage.getItem('ps-studio-language') === 'en'
+      && document.getElementById('designTab').textContent.includes('Designer')
+      && document.querySelector('#settingsDialog h2').textContent === 'Site settings'
+      && generate() === scriptBeforeLanguage && document.getElementById('windowTitle').textContent === state.form.text
+      && frenchFragments.length === 0;
+    languageSelect.value = 'fr';
+    languageSelect.dispatchEvent(new Event('change', {bubbles:true}));
+    const frenchRestored = document.documentElement.lang === 'fr' && document.getElementById('designTab').textContent.includes('Conception');
     const eightPalettes = document.querySelectorAll('[data-palette-choice]').length === 8;
     document.querySelector('[data-palette-choice="ocean"]').click();
     const paletteChanged = document.documentElement.dataset.palette === 'ocean';
@@ -73,6 +99,11 @@ try {
     document.getElementById('settingsReset').click();
     const accentReset = !document.documentElement.style.getPropertyValue('--accent');
     document.getElementById('closeSettings').click();
+    StudioI18n.setLanguage('en');
+    document.getElementById('help').click();
+    const englishGuide = document.getElementById('dialogBody').textContent.includes('Build your interface in a few steps');
+    document.getElementById('closeDialog').click();
+    StudioI18n.setLanguage('fr');
     document.querySelector('.component[data-type="Button"]').click();
     const addedButton = state.controls.at(-1);
     const controlHandleSmall = getComputedStyle(document.querySelector('.control .handle-e')).width === '10px'
@@ -81,6 +112,18 @@ try {
     const addedCheckBox = state.controls.at(-1);
     document.getElementById('visualTab').click();
     const visualOpened = !document.getElementById('visualView').hidden;
+    const visualFrameRemoved = ['borderLeftWidth','borderRightWidth','borderBottomWidth'].every(key=>getComputedStyle(document.getElementById('visualView'))[key]==='0px')
+      && getComputedStyle(document.getElementById('visualPalette')).borderRightWidth === '0px'
+      && getComputedStyle(document.querySelector('.vs-preview')).borderLeftWidth === '0px';
+    const helpButtons = document.querySelectorAll('#visualPalette [data-help-kind]');
+    const allTooltips = helpButtons.length === VisualScripting.definitions.length
+      && [...helpButtons].every(button=>button.title.length > 20);
+    document.querySelector('#visualPalette [data-help-kind="repeat"]').click();
+    const tooltipOpens = document.getElementById('toast').textContent.includes('Répète');
+    StudioI18n.setLanguage('en');
+    const englishTooltip = document.querySelector('#visualPalette [data-help-kind="repeat"]').title.startsWith('Repeats')
+      && document.querySelector('[data-add-kind="repeat"]').textContent.includes('Repeat N times');
+    StudioI18n.setLanguage('fr');
     const visualTarget = document.getElementById('visualTarget');
     visualTarget.value = addedButton.name;
     visualTarget.dispatchEvent(new Event('change', {bubbles:true}));
@@ -121,6 +164,19 @@ try {
       && conditionBlock.conditions[1].rightValue === 'true'
       && conditionBlock.conditions[1].join === 'or'
       && document.getElementById('code').textContent.includes(addedButton.name + '.Text');
+    addedCheckBox.text = 'Choix personnalisé';
+    StudioI18n.setLanguage('en');
+    const projectTextPreserved = [...document.getElementById('visualTarget').options]
+      .some(item=>item.textContent.includes('Check box') && item.textContent.includes('Choix personnalisé'));
+    const visualFrenchFragments = [];
+    const visualWalker = document.createTreeWalker(document.getElementById('visualView'), NodeFilter.SHOW_TEXT);
+    while(visualWalker.nextNode()){
+      const node = visualWalker.currentNode;
+      if(node.parentElement.closest('pre,textarea,[data-i18n-skip]'))continue;
+      if(/[éèêàùûôîïçÉÈÊÀÙÔÇ]/.test(node.textContent))visualFrenchFragments.push(node.textContent.trim().slice(0,90));
+    }
+    const englishVisualComplete = visualFrenchFragments.length === 0;
+    StudioI18n.setLanguage('fr');
     const advancedMode = conditionElement().querySelector('[data-condition-mode]');
     advancedMode.value = 'code';
     advancedMode.dispatchEvent(new Event('change', {bubbles:true}));
@@ -147,11 +203,17 @@ try {
     document.getElementById('designTab').click();
     const designRestored = !document.body.classList.contains('visual-active')
       && getComputedStyle(document.querySelector('.workspace-heading')).display !== 'none';
-    const features = dialogOpened && eightPalettes && paletteChanged && darkChanged && accentChanged && accentReset
-      && visualOpened && visualAdded && conditionConfigured && advancedAvailable && whileUsesLists
+    const features = tabsCentered && tabsClear && tipRemoved && dialogOpened && flagsAvailable && englishSelected && frenchRestored && englishGuide
+      && eightPalettes && paletteChanged && darkChanged && accentChanged && accentReset
+      && visualOpened && visualAdded && conditionConfigured && englishVisualComplete && projectTextPreserved && advancedAvailable && whileUsesLists
+      && visualFrameRemoved && allTooltips && tooltipOpens && englishTooltip
       && formHandleSmall && controlHandleSmall && scrollPanels && pageFixed && headingsRemoved && designRestored;
     const diagnostics = {moved, centered, aligned, noPanInsideForm, unchanged,
-      dialogOpened, eightPalettes, paletteChanged, darkChanged, accentChanged, accentReset, visualOpened, visualAdded, conditionConfigured, advancedAvailable, whileUsesLists,
+      tabsCentered, tabsClear, navLeftRight:document.querySelector('nav>div:first-child').getBoundingClientRect().right,
+      tabsLeft:tabsRect.left,tabsRight:tabsRect.right,helpLeft:document.getElementById('help').getBoundingClientRect().left,
+      tipRemoved, dialogOpened, flagsAvailable, englishSelected, frenchFragments, frenchRestored, englishGuide,
+      eightPalettes, paletteChanged, darkChanged, accentChanged, accentReset, visualOpened, visualAdded, conditionConfigured, englishVisualComplete, projectTextPreserved, visualFrenchFragments, advancedAvailable, whileUsesLists,
+      visualFrameRemoved, allTooltips, tooltipOpens, englishTooltip,
       formHandleSmall, controlHandleSmall, scrollPanels, pageFixed, headingsRemoved, designRestored,
       pageHeight:document.documentElement.scrollHeight,windowHeight:window.innerHeight,
       flowHeight:flowPane.clientHeight,flowScrollHeight:flowPane.scrollHeight,
@@ -186,6 +248,25 @@ try {
   assert.equal(desktopResult, 'PASS', desktopResult || desktop.stderr);
   const desktopFeatures = [...desktop.stdout.matchAll(/<output id="featureResult">([^<]*)<\/output>/g)].at(-1)?.[1];
   assert.equal(desktopFeatures, 'PASS', desktopFeatures || desktop.stderr);
+  const laptop = spawnSync(browser, [
+    '--headless=new', '--disable-gpu', '--no-first-run', '--no-default-browser-check',
+    '--window-size=1200,800', `--user-data-dir=${path.join(profile, 'laptop-profile')}`,
+    '--dump-dom', pathToFileURL(probeFile).href
+  ], { encoding: 'utf8', timeout: 20000, maxBuffer: 8 * 1024 * 1024 });
+  if (laptop.error) throw laptop.error;
+  assert.equal(laptop.status, 0, laptop.stderr);
+  const laptopFeatures = [...laptop.stdout.matchAll(/<output id="featureResult">([^<]*)<\/output>/g)].at(-1)?.[1];
+  assert.equal(laptopFeatures, 'PASS', laptopFeatures || laptop.stderr);
+  const mobile = spawnSync(browser, [
+    '--headless=new', '--disable-gpu', '--no-first-run', '--no-default-browser-check',
+    '--window-size=600,900', `--user-data-dir=${path.join(profile, 'mobile-profile')}`,
+    '--dump-dom', pathToFileURL(probeFile).href
+  ], { encoding: 'utf8', timeout: 20000, maxBuffer: 8 * 1024 * 1024 });
+  if (mobile.error) throw mobile.error;
+  assert.equal(mobile.status, 0, mobile.stderr);
+  const mobileFeatures = [...mobile.stdout.matchAll(/<output id="featureResult">([^<]*)<\/output>/g)].at(-1)?.[1];
+  assert.equal(mobileFeatures, 'PASS', mobileFeatures || mobile.stderr);
+  console.log('PASS: onglets centrés sans chevauchement, cadre retiré, aides des blocs et français/anglais');
   console.log('PASS: conditions sans code, listes de composants, mode avancé et boucle Tant que sur mobile et bureau');
   console.log('PASS: poignées réduites et défilement limité aux panneaux Visual scripting sur mobile et bureau');
   console.log('PASS: réglages, huit palettes et boucle visuelle imbriquée sur mobile et bureau');

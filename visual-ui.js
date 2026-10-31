@@ -1,6 +1,32 @@
 'use strict';
 (() => {
   const escapeHtml=value=>String(value).replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
+  const help={
+    message:['Affiche une boîte de dialogue avec un message.','Shows a message dialog.'],
+    confirm:['Pose une question et exécute la branche Oui ou Non.','Asks a question and runs the Yes or No branch.'],
+    setText:['Remplace le texte du composant choisi.','Replaces the text of the selected component.'],
+    appendText:['Ajoute du texte après le texte existant.','Appends text to the existing text.'],
+    setProperty:['Modifie une propriété du composant choisi.','Changes a property of the selected component.'],
+    toggle:['Inverse un état comme Visible ou Activé.','Toggles a state such as Visible or Enabled.'],
+    readProperty:['Copie une propriété dans une variable visuelle.','Copies a property into a visual variable.'],
+    setVariable:['Crée ou remplace une variable visuelle.','Creates or replaces a visual variable.'],
+    increment:['Augmente une variable numérique du pas choisi.','Increases a numeric variable by the chosen amount.'],
+    if:['Exécute Alors ou Sinon selon une condition créée avec les listes.','Runs Then or Else based on a condition built with the menus.'],
+    repeat:['Répète les blocs de la branche Faire un nombre défini de fois.','Repeats the Do branch a specified number of times.'],
+    foreach:['Exécute les blocs pour chaque élément d’une collection.','Runs the blocks for each item in a collection.'],
+    while:['Répète la branche Faire tant que la condition est vraie, dans la limite fixée.','Repeats the Do branch while the condition is true, up to the set limit.'],
+    tryCatch:['Exécute une action et traite une éventuelle erreur.','Runs an action and handles any error.'],
+    delay:['Suspend le script pendant le nombre de millisecondes indiqué.','Pauses the script for the chosen number of milliseconds.'],
+    writeOutput:['Envoie un texte ou une valeur dans la sortie PowerShell.','Writes text or a value to PowerShell output.'],
+    startProcess:['Ouvre une URL, un document ou un programme.','Opens a URL, document, or program.'],
+    readFile:['Lit un fichier UTF-8 et range son contenu dans une variable.','Reads a UTF-8 file into a variable.'],
+    writeFile:['Écrit du texte ou une variable dans un fichier UTF-8.','Writes text or a variable to a UTF-8 file.'],
+    chooseFile:['Demande à l’utilisateur de choisir un fichier.','Lets the user choose a file.'],
+    closeForm:['Ferme la fenêtre créée par le script.','Closes the window created by the script.'],
+    return:['Arrête les blocs de cet événement.','Stops the blocks for this event.'],
+    raw:['Ajoute du code PowerShell pour un besoin particulier.','Adds custom PowerShell code for a specific need.']
+  };
+  const description=kind=>help[kind]?.[document.documentElement.lang==='en'?1:0]||'';
   const targets=()=>[state.form,...state.controls];
   let selectedTarget='MainForm';
   let selectedEvent='Load';
@@ -19,8 +45,11 @@
   }
   const targetType=name=>name==='MainForm'?'Form':state.controls.find(c=>c.name===name)?.type||'Form';
   const option=(value,label,selected)=>`<option value="${escapeHtml(value)}" ${value===selected?'selected':''}>${escapeHtml(label)}</option>`;
-  const targetLabel=item=>item.name==='MainForm'?'Fenêtre principale':`${types[item.type]?.[0]||item.type} · ${(item.text||item.name).replace(/\s+/g,' ').slice(0,26)} (${item.name})`;
-  const targetOptions=value=>targets().map(item=>option(item.name,targetLabel(item),value)).join('')+(targets().some(item=>item.name===value)?'':option(value,`${value} (supprimé)`,value));
+  const targetLabel=item=>item.name==='MainForm'
+    ?(window.StudioI18n?.translate('Fenêtre principale')||'Fenêtre principale')
+    :`${window.StudioI18n?.translate(types[item.type]?.[0]||item.type)||types[item.type]?.[0]||item.type} · ${(item.text||item.name).replace(/\s+/g,' ').slice(0,26)} (${item.name})`;
+  const targetOption=(item,value)=>`<option data-i18n-skip value="${escapeHtml(item.name)}" ${item.name===value?'selected':''}>${escapeHtml(targetLabel(item))}</option>`;
+  const targetOptions=value=>targets().map(item=>targetOption(item,value)).join('')+(targets().some(item=>item.name===value)?'':option(value,`${value} (supprimé)`,value));
   const propertyLabels={Text:'Texte',Enabled:'Activé',Visible:'Visible',BackColor:'Couleur de fond',ForeColor:'Couleur du texte',Width:'Largeur',Height:'Hauteur',Left:'Position X',Top:'Position Y',Tag:'Étiquette libre',ReadOnly:'Lecture seule',Checked:'Coché',SelectedIndex:'Choix sélectionné',Value:'Valeur'};
   const propertyLabel=name=>propertyLabels[name]||name;
   const propertyValueType=name=>['Checked','Enabled','Visible','ReadOnly'].includes(name)?'boolean':['Width','Height','Left','Top','SelectedIndex','Value'].includes(name)?'number':'text';
@@ -86,14 +115,14 @@
       if(!def)return '';
       const branches=(def.branches||[]).map(branch=>`<div class="vs-branch"><div class="vs-branch-title">${escapeHtml(VisualScripting.branchLabel[branch])}</div>${renderList(step[branch],depth+1)}<div class="vs-add-nested">${kindPicker()}<button data-add-branch="${branch}" data-parent="${step.id}">+ Ajouter</button></div></div>`).join('');
       const fields=['if','while'].includes(step.kind)?conditionEditorHtml(step):`<div class="vs-fields">${def.fields.map(field=>fieldHtml(step,field)).join('')}</div>`;
-      return `<article class="vs-block vs-${escapeHtml(def.group.toLowerCase())}" data-step-id="${escapeHtml(step.id)}"><div class="vs-block-head"><strong>${escapeHtml(def.label)}</strong><div><button data-move="up" title="Monter">↑</button><button data-move="down" title="Descendre">↓</button><button data-delete title="Supprimer">×</button></div></div>${fields}${branches}</article>`;
+      return `<article class="vs-block vs-${escapeHtml(def.group.toLowerCase())}" data-step-id="${escapeHtml(step.id)}"><div class="vs-block-head"><strong>${escapeHtml(def.label)}</strong><div><button type="button" data-help-kind="${step.kind}" title="${escapeHtml(description(step.kind))}" aria-label="${escapeHtml(description(step.kind))}">ⓘ</button><button data-move="up" title="Monter">↑</button><button data-move="down" title="Descendre">↓</button><button data-delete title="Supprimer">×</button></div></div>${fields}${branches}</article>`;
     }).join('');
   }
   function render(){
     if(!targets().some(item=>item.name===selectedTarget))selectedTarget='MainForm';
     const allowed=VisualScripting.eventsFor(owner().type||'Form');
     if(!allowed.includes(selectedEvent))selectedEvent=allowed[0];
-    $('visualTarget').innerHTML=targets().map(item=>option(item.name,targetLabel(item),selectedTarget)).join('');
+    $('visualTarget').innerHTML=targets().map(item=>targetOption(item,selectedTarget)).join('');
     $('visualEvent').innerHTML=allowed.map(name=>option(name,`${eventLabels[name]||name} (${name})`,selectedEvent)).join('');
     const blocks=eventList();
     $('visualBlocks').innerHTML=blocks.length?renderList(blocks):'<p class="vs-empty">Aucun bloc pour cet événement. Choisissez une action dans la colonne de gauche.</p>';
@@ -111,12 +140,17 @@
   }
   $('visualTarget').onchange=e=>{selectedTarget=e.target.value;selectedEvent=VisualScripting.eventsFor(owner().type||'Form')[0];render();};
   $('visualEvent').onchange=e=>{selectedEvent=e.target.value;render();};
-  $('visualPalette').innerHTML=[...new Set(VisualScripting.definitions.map(def=>def.group))].map(group=>`<div class="vs-palette-group"><h3>${escapeHtml(group)}</h3>${VisualScripting.definitions.filter(def=>def.group===group).map(def=>`<button data-add-kind="${def.kind}">+ ${escapeHtml(def.label)}</button>`).join('')}</div>`).join('');
+  function renderPalette(){
+    $('visualPalette').innerHTML=[...new Set(VisualScripting.definitions.map(def=>def.group))].map(group=>`<div class="vs-palette-group"><h3>${escapeHtml(group)}</h3>${VisualScripting.definitions.filter(def=>def.group===group).map(def=>`<div class="vs-palette-item"><button data-add-kind="${def.kind}" title="${escapeHtml(description(def.kind))}">+ ${escapeHtml(def.label)}</button><button type="button" data-help-kind="${def.kind}" class="vs-help-button" title="${escapeHtml(description(def.kind))}" aria-label="${escapeHtml(description(def.kind))}">ⓘ</button></div>`).join('')}</div>`).join('');
+  }
+  renderPalette();
   $('visualPalette').onclick=e=>{
+    const helpButton=e.target.closest('[data-help-kind]');if(helpButton){toast(description(helpButton.dataset.helpKind));return;}
     const button=e.target.closest('[data-add-kind]');if(!button)return;
     checkpoint();eventList().push(VisualScripting.createStep(button.dataset.addKind));commit();
   };
   $('visualBlocks').onclick=e=>{
+    const helpButton=e.target.closest('[data-help-kind]');if(helpButton){toast(description(helpButton.dataset.helpKind));return;}
     const addCondition=e.target.closest('[data-condition-add]');
     if(addCondition){
       const step=findLocation(eventList(),addCondition.closest('[data-step-id]').dataset.stepId)?.step;
@@ -195,5 +229,5 @@
     commit();
   };
   $('visualBlocks').addEventListener('focusout',finishTextEdit);
-  window.VisualEditor={render,updatePreview};
+  window.VisualEditor={render,renderPalette,updatePreview};
 })();

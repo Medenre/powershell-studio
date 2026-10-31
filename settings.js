@@ -31,6 +31,7 @@
     apply();
   };
   $('settingsMode').onchange=e=>{setTheme(e.target.value==='dark');apply();};
+  $('settingsLanguage').onchange=e=>window.StudioI18n?.setLanguage(e.target.value);
   $('settingsAccent').oninput=e=>{
     accent=e.target.value;
     try{localStorage.setItem('ps-studio-accent',accent);}catch{}
