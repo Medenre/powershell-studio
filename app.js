@@ -4,6 +4,7 @@ const {types, fonts, transparentTypes, typography, fresh, validate, featureDefau
 const generate = () => StudioCore.generate(state);
 const launchCommand = () => StudioCore.launchCommand(state.targetVersion);
 let formOrigin={x:48,y:24};
+let panOffset={x:0,y:0};
 let selectedIds=new Set();
 let state=fresh(), selected=null,zoom=window.matchMedia('(max-width:780px)').matches?.6:1,undoStack=[],redoStack=[];
 try{const saved=localStorage.getItem('ps-studio');if(saved)state=validate(JSON.parse(saved));}catch{}
@@ -73,7 +74,7 @@ $('search').oninput=palette;$('selectForm').onclick=()=>{selected=null;render();
 $('export').onclick=()=>{download('\uFEFF'+generate(),'interface.ps1','text/plain;charset=utf-8');toast('Script exporté · PowerShell '+state.targetVersion);};$('save').onclick=()=>download(JSON.stringify(state,null,2),'interface.psstudio.json','application/json');$('open').onclick=()=>$('file').click();$('file').onchange=async e=>{const file=e.target.files[0];if(!file)return;try{if(file.size>20000000)throw Error('Fichier trop volumineux');const next=validate(JSON.parse(await file.text()));checkpoint();state=next;selected=null;render();toast('Projet ouvert');}catch(err){toast('Import impossible : '+err.message);}e.target.value='';};$('new').onclick=()=>{if(!state.controls.length||confirm('Créer une nouvelle interface ? Pensez à télécharger votre projet actuel.')){checkpoint();state=fresh();selected=null;render();}};
 function history(back){finishTextEdit();const src=back?undoStack:redoStack,dest=back?redoStack:undoStack;if(!src.length)return;dest.push(JSON.stringify(state));trimHistory(dest);state=JSON.parse(src.pop());selected=null;render();}$('undo').onclick=()=>history(true);$('redo').onclick=()=>history(false);
 function tab(code){$('designer').hidden=code;$('codeView').hidden=!code;$('codeTab').classList.toggle('active',code);$('designTab').classList.toggle('active',!code);$('code').textContent=generate();}$('codeTab').onclick=()=>tab(true);$('designTab').onclick=()=>tab(false);$('copy').onclick=async()=>{try{await navigator.clipboard.writeText(generate());toast('Code copié');}catch{toast('Copie indisponible : utilisez Exporter .ps1');}};
-$('help').onclick=()=>{$('dialogBody').innerHTML='<h2>Votre interface, en quelques gestes.</h2><p>1. Glissez un composant depuis la palette, ou cliquez dessus.<br>2. Déplacez-le et utilisez les points de chaque côté pour modifier sa largeur ou sa hauteur, et le coin pour les deux.<br>3. Cliquez sur le fond ou le titre de la fenêtre, puis glissez les points de ses côtés pour ajuster sa largeur ou sa hauteur. Sa taille minimale préserve les composants.<br>4. Modifiez les propriétés dans le panneau de droite.</p><p>Pour un bouton, saisissez votre code dans <b>Événement · Click</b>. Référencez les composants avec leur nom, par exemple <code>$ctrl_TextBox1.Text</code>.</p><p><b>Images et mise en page :</b> importez une image sur un bouton ou ajoutez un composant Image. Les images sont intégrées dans le script. Ctrl/Maj + clic sélectionne plusieurs composants ; utilisez Centrer, Aligner, Même largeur/hauteur et Espacer dans les propriétés. Ctrl+A sélectionne tout, Échap désélectionne. Les infobulles et l’ordre de tabulation facilitent l’utilisation du formulaire.</p><p><b>Enregistrer</b> télécharge un fichier JSON réouvrable ici. Votre travail est également enregistré dans ce navigateur.</p><p>Choisissez la version PowerShell dans les propriétés de la fenêtre (2.0 à 7). Le code est régénéré immédiatement et le choix est conservé dans le projet. <b>Exporter .ps1</b> télécharge directement le script correspondant. Le thème sombre concerne uniquement l’éditeur ; les couleurs de votre interface restent celles des propriétés. Lancez-le sous Windows avec <code>powershell.exe -STA -File .\\interface.ps1</code>, selon la politique d’exécution de votre poste.</p><p>Le rendu web est un aperçu : certains contrôles natifs peuvent légèrement différer sous Windows. Groupes et panneaux sont visuels, sans imbrication.</p>';$('dialog').showModal();};$('closeDialog').onclick=()=>$('dialog').close();
+$('help').onclick=()=>{$('dialogBody').innerHTML='<h2>Votre interface, en quelques gestes.</h2><p>1. Glissez un composant depuis la palette, ou cliquez dessus.<br>2. Déplacez-le et utilisez les points de chaque côté pour modifier sa largeur ou sa hauteur, et le coin pour les deux.<br>3. Cliquez sur le fond ou le titre de la fenêtre, puis glissez les points de ses côtés pour ajuster sa largeur ou sa hauteur. Sa taille minimale préserve les composants.<br>4. Modifiez les propriétés dans le panneau de droite.<br>5. Glissez le fond vide autour de la fenêtre avec le clic gauche pour déplacer la vue ; cliquez avec la molette pour la recentrer.</p><p>Pour un bouton, saisissez votre code dans <b>Événement · Click</b>. Référencez les composants avec leur nom, par exemple <code>$ctrl_TextBox1.Text</code>.</p><p><b>Images et mise en page :</b> importez une image sur un bouton ou ajoutez un composant Image. Les images sont intégrées dans le script. Ctrl/Maj + clic sélectionne plusieurs composants ; utilisez Centrer, Aligner, Même largeur/hauteur et Espacer dans les propriétés. Ctrl+A sélectionne tout, Échap désélectionne. Les infobulles et l’ordre de tabulation facilitent l’utilisation du formulaire.</p><p><b>Enregistrer</b> télécharge un fichier JSON réouvrable ici. Votre travail est également enregistré dans ce navigateur.</p><p>Choisissez la version PowerShell dans les propriétés de la fenêtre (2.0 à 7). Le code est régénéré immédiatement et le choix est conservé dans le projet. <b>Exporter .ps1</b> télécharge directement le script correspondant. Le thème sombre concerne uniquement l’éditeur ; les couleurs de votre interface restent celles des propriétés. Lancez-le sous Windows avec <code>powershell.exe -STA -File .\\interface.ps1</code>, selon la politique d’exécution de votre poste.</p><p>Le rendu web est un aperçu : certains contrôles natifs peuvent légèrement différer sous Windows. Groupes et panneaux sont visuels, sans imbrication.</p>';$('dialog').showModal();};$('closeDialog').onclick=()=>$('dialog').close();
 window.onkeydown=e=>{if($('dialog').open)return;if(['INPUT','TEXTAREA','SELECT'].includes(document.activeElement.tagName))return;if((e.ctrlKey||e.metaKey)&&['z','y','d'].includes(e.key.toLowerCase())){e.preventDefault();if(e.key.toLowerCase()==='d')duplicate();else history(e.key.toLowerCase()==='z'&&!e.shiftKey);}if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='a'&&!$('designer').hidden){e.preventDefault();selectedIds=new Set(state.controls.map(c=>c.id));selected=state.controls.at(-1)?.id||null;render();return;}if(e.key==='Escape'){setMobilePanel(null);selectControl(null);render();return;}if(e.key==='Delete')remove();if(selected&&['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(e.key)){e.preventDefault();checkpoint();const step=e.shiftKey?8:1;moveSelection(e.key==='ArrowRight'?step:e.key==='ArrowLeft'?-step:0,e.key==='ArrowDown'?step:e.key==='ArrowUp'?-step:0);render();}};
 function setTheme(dark){document.documentElement.dataset.theme=dark?'dark':'light';$('theme').textContent=dark?'☀ Thème clair':'☾ Thème sombre';$('theme').setAttribute('aria-label',dark?'Activer le thème clair':'Activer le thème sombre');$('theme').setAttribute('aria-pressed',String(dark));try{localStorage.setItem('ps-studio-theme',dark?'dark':'light');}catch{}}
 let dark=false;try{dark=localStorage.getItem('ps-studio-theme')==='dark';}catch{}setTheme(dark);
@@ -88,11 +89,42 @@ $('formHandles').onkeydown=e=>{const handle=e.target.closest('[data-resize]');if
 function versionField(){return `<div class="prop-section">POWERSHELL</div><label class="field">Version cible<select id="targetVersion">${[['2.0','2.0 (ancien)'],['3.0','3.0'],['4.0','4.0'],['5.1','5.1'],['7.0','7 (Windows)']].map(([v,label])=>`<option value="${v}" ${state.targetVersion===v?'selected':''}>PowerShell ${label}</option>`).join('')}</select></label><p class="version-help">${Number(state.targetVersion)>=5?'Constructeurs modernes ::new().':'Syntaxe New-Object compatible avec les anciennes versions.'} Le code est actualisé immédiatement. Vos actions personnalisées ne sont pas converties automatiquement.</p><label class="field">Commande de lancement<code class="launch-command">${esc(launchCommand())}</code></label>`;}
 function centerCanvas(){
  const viewport=$('viewport');if(!viewport.clientWidth||!viewport.clientHeight)return;
- // Symmetric padding leaves room for handles; larger forms scroll to their center.
+ panOffset={x:0,y:0};applyViewportPan();
+ // Le calcul suit l'espacement réel du canevas, y compris sur écran étroit.
  const width=(state.form.w+2)*zoom,height=(state.form.h+37)*zoom;
- formOrigin={x:Math.max(0,(viewport.clientWidth-64-width)/2)/zoom,y:Math.max(0,(viewport.clientHeight-64-height)/2)/zoom};
+ const style=getComputedStyle(viewport);
+ const paddingX=parseFloat(style.paddingLeft)+parseFloat(style.paddingRight);
+ const paddingY=parseFloat(style.paddingTop)+parseFloat(style.paddingBottom);
+ formOrigin={x:Math.max(0,(viewport.clientWidth-paddingX-width)/2)/zoom,y:Math.max(0,(viewport.clientHeight-paddingY-height)/2)/zoom};
  renderCanvas();viewport.scrollLeft=Math.max(0,(viewport.scrollWidth-viewport.clientWidth)/2);viewport.scrollTop=Math.max(0,(viewport.scrollHeight-viewport.clientHeight)/2);
 }
+function applyViewportPan(){$('scaleWrap').style.transform=`translate(${panOffset.x}px, ${panOffset.y}px)`;}
+const viewport=$('viewport');
+viewport.addEventListener('pointerdown',e=>{
+ if(e.pointerType!=='mouse')return;
+ if(e.button===1){e.preventDefault();e.stopPropagation();centerCanvas();return;}
+ if(e.button!==0||e.target!==viewport)return;
+ e.preventDefault();
+ const pointerId=e.pointerId,startX=e.clientX,startY=e.clientY,start={...panOffset};
+ viewport.classList.add('is-panning');
+ const move=event=>{
+  if(event.pointerId!==pointerId)return;
+  panOffset={x:start.x+event.clientX-startX,y:start.y+event.clientY-startY};
+  applyViewportPan();
+ };
+ const stop=event=>{
+  if(event.pointerId!==pointerId)return;
+  viewport.classList.remove('is-panning');
+  window.removeEventListener('pointermove',move);
+  window.removeEventListener('pointerup',stop);
+  window.removeEventListener('pointercancel',stop);
+ };
+ window.addEventListener('pointermove',move);
+ window.addEventListener('pointerup',stop);
+ window.addEventListener('pointercancel',stop);
+},true);
+viewport.addEventListener('mousedown',e=>{if(e.button===1)e.preventDefault();},true);
+viewport.addEventListener('auxclick',e=>{if(e.button===1)e.preventDefault();});
 function changeZoom(delta){zoom=Math.round(Math.max(.4,Math.min(1.5,zoom+delta))*10)/10;centerCanvas();requestAnimationFrame(centerCanvas);}
 function chosen(){return state.controls.filter(c=>selectedIds.has(c.id));}
 function selectControl(id,toggle=false){if(!toggle)selectedIds.clear();if(id){if(toggle&&selectedIds.has(id))selectedIds.delete(id);else selectedIds.add(id);}selected=selectedIds.has(id)?id:([...selectedIds].pop()||null);}

@@ -2,13 +2,14 @@
 
 Éditeur visuel d’interfaces Windows Forms avec export PowerShell. Application statique en français, sans dépendance, sans compilation et sans serveur applicatif.
 
-**Version de l’application : 1.1.0** (31 octobre 2026). Cette numérotation est distincte du format de projet JSON (`version: 1`) et de la version PowerShell ciblée.
+**Version de l’application : 1.2.0** (31 octobre 2026). Cette numérotation est distincte du format de projet JSON (`version: 1`) et de la version PowerShell ciblée.
 
 ## Fonctionnalités
 
 - 13 composants à glisser-déposer, propriétés, couleurs, police et actions de boutons.
 - Redimensionnement par les quatre côtés et le coin inférieur droit.
 - Zoom et dézoom avec recentrage automatique.
+- Dans le canevas, glisser au clic gauche sur le fond vide autour de la fenêtre pour déplacer la vue ; cliquer avec la molette pour recentrer l’interface.
 - Thème clair/sombre mémorisé.
 - Choix de PowerShell 2.0, 3.0, 4.0, 5.1 ou 7 dans les propriétés de la fenêtre.
 - Régénération du code et téléchargement direct d’un `.ps1` UTF-8 avec BOM.
@@ -105,6 +106,12 @@ Vérifications : `node verify.cjs` teste le modèle, la géométrie, la validati
 Ouvrir `index.html` pour utiliser l’application. Facultatif : `node verify.cjs` exécute les vérifications du modèle et du générateur sans dépendance. Les nouveaux réglages sont enregistrés dans le projet JSON. En sélection multiple, les propriétés individuelles concernent le dernier élément sélectionné ; les outils Mise en page concernent toute la sélection.
 
 ## Historique des versions
+
+### 1.2.0 — 31 octobre 2026
+
+- Déplacement de la vue par glissement au clic gauche sur le fond extérieur de l’interface et recentrage par clic molette.
+- Centrage ajusté à l’espacement réel du canevas sur écran étroit ; les gestes ne modifient pas le projet ni son historique.
+- Vérification dans Chrome des gestes et du centrage sur les vues mobile et bureau.
 
 ### 1.1.0 — 31 octobre 2026
 

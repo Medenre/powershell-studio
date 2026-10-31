@@ -13,6 +13,9 @@
 
 /* Edge handles share one interaction model on controls and the form. */
 #scaleWrap{margin:0}#canvas{overflow:visible}
+#viewport{cursor:grab}
+#window{cursor:default}
+#viewport.is-panning,#viewport.is-panning *{cursor:grabbing!important;user-select:none}
 #formHandles{position:absolute;inset:0;pointer-events:none}
 .resize-handle{position:absolute!important;width:14px!important;height:14px!important;min-width:0;padding:0!important;margin:0!important;border:2px solid #7968dd!important;border-radius:50%!important;background:#fff!important;box-shadow:0 0 0 2px #7968dd22;z-index:30;touch-action:none;pointer-events:auto;transform:translate(-50%,-50%)}
 .resize-handle:hover,.resize-handle:focus-visible{background:#dcd5ff!important;outline:2px solid #b1a3ff;outline-offset:2px}
