@@ -2,7 +2,7 @@
 
 Éditeur visuel d’interfaces Windows Forms avec export PowerShell. Application statique en français, sans dépendance, sans compilation et sans serveur applicatif.
 
-**Version de l’application : 1.5.0** (1er novembre 2026). Cette numérotation est distincte du format de projet JSON (`version: 1`) et de la version PowerShell ciblée.
+**Version de l’application : 1.6.0** (1er novembre 2026). Cette numérotation est distincte du format de projet JSON (`version: 1`) et de la version PowerShell ciblée.
 
 ## Fonctionnalités
 
@@ -14,6 +14,8 @@
 - Onglet **Visual scripting** : événements des composants, blocs d’interface, variables, conditions à créer par listes de choix, boucles, fichiers, actions et code PowerShell libre.
 - Choix de PowerShell 2.0, 3.0, 4.0, 5.1 ou 7 dans les propriétés de la fenêtre.
 - Régénération du code et téléchargement direct d’un `.ps1` UTF-8 avec BOM.
+- Coloration syntaxique du code PowerShell : palette officielle du thème PowerShell ISE en mode clair, variante contrastée en mode sombre.
+- Commandes de mise en page illustrées par des icônes pour le centrage, l’alignement, les dimensions et l’espacement.
 - Enregistrement et ouverture des projets JSON, sauvegarde locale, annuler/rétablir.
 
 ## Utilisation locale
@@ -34,7 +36,7 @@ Le même panneau propose **🇫🇷 Français** et **🇬🇧 English**. Le choi
 
 Dans **Conception**, ajouter les composants. Ouvrir **Visual scripting**, choisir le composant et son événement (par exemple **Bouton → Click**), puis ajouter les blocs depuis la colonne de gauche. Les flèches changent leur ordre ; les boutons à l’intérieur d’une branche ajoutent des blocs imbriqués. Dans un champ « Valeur », choisir **Texte fixe** pour du texte échappé automatiquement ou **Expression PowerShell** pour une expression évaluée au moment de l’événement. Le bloc d’écriture de fichier propose ce choix séparément pour le chemin et le contenu. Les variables visuelles sont accessibles sous la forme `$StudioVars['nom']` dans les expressions et le code libre.
 
-Survoler un bloc ou cliquer sur son icône **ⓘ** pour afficher une courte explication de son rôle.
+Survoler un bloc ou cliquer sur son icône **ⓘ** pour afficher une courte explication de son rôle. L’icône **ⓘ** à côté du sélecteur **Composant** décrit aussi le composant choisi.
 
 Exemple : pour changer un libellé trois fois au clic d’un bouton, ajouter **Répéter N fois** avec `3`, puis **Changer un texte** dans sa branche **Faire** ; sélectionner le libellé et renseigner `$StudioVars['i']` en mode expression. Le compteur commence à zéro. La vue **Code PowerShell** montre le résultat complet avant l’export. Pour un bouton, le code manuel de la propriété **Événement · Click** reste pris en charge et s’exécute après les blocs visuels.
 
@@ -92,6 +94,7 @@ Si le fichier téléchargé est bloqué par la politique RemoteSigned, et après
 - `style.css` : styles, thèmes et poignées.
 - `responsive.css` : adaptation aux écrans étroits et panneaux repliables.
 - `themes.css`, `settings.js` : palettes, réglages et mémorisation locale.
+- `syntax.css`, `syntax.js` : palette PowerShell ISE et coloration du code dans l’éditeur.
 - `i18n.js` : traduction français/anglais de l’éditeur et mémorisation de la langue.
 - `visual.css`, `visual-ui.js`, `visual-core.js` : éditeur de blocs et génération des événements PowerShell.
 - `core.js` : modèle de projet, validation et génération PowerShell.
@@ -125,11 +128,17 @@ Ouvrir `index.html` pour utiliser l’application. Facultatif : `node verify.cjs
 
 ## Historique des versions
 
+### 1.6.0 — 1er novembre 2026
+
+- Coloration syntaxique dans l’onglet **Code PowerShell** : commentaires, mots clés, commandes, variables, chaînes et autres éléments. Le mode clair reprend les couleurs du [thème PowerShell ISE officiel](https://github.com/PowerShell/vscode-powershell/blob/main/themes/theme-psise/theme.json) ; le mode sombre utilise des couleurs adaptées au contraste.
+- Icônes vectorielles et libellés sur les dix actions de mise en page. Les actions, leurs conditions d’activation et l’export PowerShell sont conservés.
+- Affichage du code sécurisé par des nœuds texte ; tests de conservation exacte du script, des couleurs et des boutons. Fichiers statiques compatibles GitHub Pages.
+
 ### 1.5.0 — 1er novembre 2026
 
 - Suppression des bordures latérales et inférieures autour du Visual scripting et de ses panneaux ; retrait de l’encadré d’aide bleu de la palette de conception.
-- Onglets Conception, Code PowerShell et Visual scripting centrés sur la zone de travail aux largeurs de bureau compatibles, sans chevauchement des autres commandes.
-- Infobulle explicative pour chacun des blocs visuels, disponible au survol ou par l’icône **ⓘ**.
+- Onglets Conception, Code PowerShell et Visual scripting centrés sur la zone de travail ; les commandes de projet deviennent compactes aux largeurs intermédiaires pour éviter le chevauchement.
+- Infobulle explicative pour chacun des blocs visuels et pour le composant sélectionné, disponible au survol ou par l’icône **ⓘ**.
 - Choix de langue **français/anglais** avec drapeaux dans Paramètres ; traduction des commandes et des menus, sans modifier le projet ni l’export PowerShell.
 - Vérifications dans Chrome des deux langues, des infobulles, du centrage et de la conservation des textes saisis.
 

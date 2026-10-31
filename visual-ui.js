@@ -26,7 +26,24 @@
     return:['Arrête les blocs de cet événement.','Stops the blocks for this event.'],
     raw:['Ajoute du code PowerShell pour un besoin particulier.','Adds custom PowerShell code for a specific need.']
   };
+  const componentHelp={
+    Form:['Fenêtre principale qui contient les composants et reçoit les événements d’ouverture et de fermeture.','Main window containing the components and receiving open and close events.'],
+    Button:['Bouton qui lance des actions quand l’utilisateur clique dessus.','Button that runs actions when the user clicks it.'],
+    Label:['Texte affiché dans la fenêtre, utile pour une information ou un résultat.','Text shown in the window for information or results.'],
+    TextBox:['Zone dans laquelle l’utilisateur peut saisir du texte.','Field where the user can type text.'],
+    CheckBox:['Case que l’utilisateur peut cocher ou décocher.','Box that the user can check or uncheck.'],
+    RadioButton:['Choix à sélectionner parmi plusieurs options.','Choice to select among several options.'],
+    ListBox:['Liste d’éléments parmi lesquels l’utilisateur choisit.','List of items from which the user chooses.'],
+    ComboBox:['Liste déroulante permettant de choisir un élément.','Drop-down list for choosing an item.'],
+    NumericUpDown:['Champ numérique avec flèches pour augmenter ou diminuer la valeur.','Numeric field with arrows to increase or decrease its value.'],
+    DateTimePicker:['Champ permettant de choisir une date.','Field for choosing a date.'],
+    ProgressBar:['Barre qui affiche une progression de 0 à 100.','Bar showing progress from 0 to 100.'],
+    GroupBox:['Cadre visuel pour regrouper des éléments dans l’éditeur.','Visual frame for grouping items in the editor.'],
+    Panel:['Zone visuelle pour organiser l’interface.','Visual area for organizing the interface.'],
+    PictureBox:['Zone qui affiche une image.','Area that displays an image.']
+  };
   const description=kind=>help[kind]?.[document.documentElement.lang==='en'?1:0]||'';
+  const componentDescription=item=>componentHelp[item.type||'Form']?.[document.documentElement.lang==='en'?1:0]||'';
   const targets=()=>[state.form,...state.controls];
   let selectedTarget='MainForm';
   let selectedEvent='Load';
@@ -123,6 +140,9 @@
     const allowed=VisualScripting.eventsFor(owner().type||'Form');
     if(!allowed.includes(selectedEvent))selectedEvent=allowed[0];
     $('visualTarget').innerHTML=targets().map(item=>targetOption(item,selectedTarget)).join('');
+    $('visualTarget').title=componentDescription(owner());
+    $('visualTargetHelp').title=componentDescription(owner());
+    $('visualTargetHelp').setAttribute('aria-label',componentDescription(owner()));
     $('visualEvent').innerHTML=allowed.map(name=>option(name,`${eventLabels[name]||name} (${name})`,selectedEvent)).join('');
     const blocks=eventList();
     $('visualBlocks').innerHTML=blocks.length?renderList(blocks):'<p class="vs-empty">Aucun bloc pour cet événement. Choisissez une action dans la colonne de gauche.</p>';
@@ -136,9 +156,10 @@
     $('visualCode').textContent=`$${owner().name}.Add_${selectedEvent}({\n${VisualScripting.compileList(state,blocks).join('\n')}${manual?'\n    # Puis code manuel du bouton':''}\n})`;
   }
   function commit(){
-    $('code').textContent=generate();persist();render();
+    renderCode();persist();render();
   }
   $('visualTarget').onchange=e=>{selectedTarget=e.target.value;selectedEvent=VisualScripting.eventsFor(owner().type||'Form')[0];render();};
+  $('visualTargetHelp').onclick=()=>toast(componentDescription(owner()));
   $('visualEvent').onchange=e=>{selectedEvent=e.target.value;render();};
   function renderPalette(){
     $('visualPalette').innerHTML=[...new Set(VisualScripting.definitions.map(def=>def.group))].map(group=>`<div class="vs-palette-group"><h3>${escapeHtml(group)}</h3>${VisualScripting.definitions.filter(def=>def.group===group).map(def=>`<div class="vs-palette-item"><button data-add-kind="${def.kind}" title="${escapeHtml(description(def.kind))}">+ ${escapeHtml(def.label)}</button><button type="button" data-help-kind="${def.kind}" class="vs-help-button" title="${escapeHtml(description(def.kind))}" aria-label="${escapeHtml(description(def.kind))}">ⓘ</button></div>`).join('')}</div>`).join('');

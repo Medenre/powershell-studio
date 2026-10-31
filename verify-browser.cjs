@@ -22,11 +22,11 @@ try {
   assert.equal(result.status, 0, result.stderr);
   assert.match(result.stdout, /data-type="Button"/);
   assert.match(result.stdout, /data-type="PictureBox"/);
-  assert.match(result.stdout, /#requires -Version 5\.1/);
+  assert.match(result.stdout, /ps-token--keyword/);
   assert.match(result.stdout, /id="showPalette"/);
   const source = fs.readFileSync(path.join(__dirname, 'index.html'), 'utf8');
   let probe = source;
-  for (const asset of ['style.css', 'responsive.css', 'visual.css', 'themes.css', 'visual-core.js', 'core.js', 'app.js', 'visual-ui.js', 'settings.js', 'i18n.js']) {
+  for (const asset of ['style.css', 'responsive.css', 'visual.css', 'themes.css', 'syntax.css', 'visual-core.js', 'core.js', 'syntax.js', 'app.js', 'visual-ui.js', 'settings.js', 'i18n.js']) {
     probe = probe.replace(`"${asset}"`, `"${pathToFileURL(path.join(__dirname, asset)).href}"`);
   }
   probe = probe.replace('</body>', `<script>
@@ -35,8 +35,8 @@ try {
     const wrap = document.getElementById('scaleWrap');
     const tabsRect = document.querySelector('nav .tabs').getBoundingClientRect();
     const headingRect = document.querySelector('.workspace-heading').getBoundingClientRect();
-    const tabsCentered = window.innerWidth <= 1150 || Math.abs(tabsRect.x + tabsRect.width / 2 - headingRect.x - headingRect.width / 2) < 2;
-    const tabsClear = window.innerWidth <= 1150 || (document.querySelector('nav>div:first-child').getBoundingClientRect().right < tabsRect.left
+    const tabsCentered = window.innerWidth <= 780 || Math.abs(tabsRect.x + tabsRect.width / 2 - headingRect.x - headingRect.width / 2) < 2;
+    const tabsClear = window.innerWidth <= 780 || (document.querySelector('nav>div:first-child').getBoundingClientRect().right < tabsRect.left
       && tabsRect.right < document.getElementById('help').getBoundingClientRect().left);
     const tipRemoved = !document.querySelector('.tip');
     const before = wrap.getBoundingClientRect();
@@ -62,10 +62,19 @@ try {
     const noPanInsideForm = panOffset.x === 0 && panOffset.y === 0;
     const unchanged = state.form.w === width && undoStack.length === historyCount;
     const formHandleSmall = getComputedStyle(document.querySelector('#formHandles .handle-e')).width === '10px';
+    const codePane = document.getElementById('code');
+    const codeUnchanged = codePane.textContent === generate();
+    const codeTokens = ['comment','keyword','variable','string','command'].every(kind=>!!codePane.querySelector('.ps-token--'+kind));
+    const lightSyntax = getComputedStyle(codePane.querySelector('.ps-token--variable')).color === 'rgb(255, 69, 0)'
+      && getComputedStyle(codePane.querySelector('.ps-token--comment')).color === 'rgb(0, 100, 0)';
+    const isolatedCode = document.createElement('pre');
+    PowerShellSyntax.render(isolatedCode, '<script>alert(1)');
+    const codeEscaped = isolatedCode.textContent === '<script>alert(1)' && !isolatedCode.querySelector('script');
     document.getElementById('settings').click();
     const dialogOpened = document.getElementById('settingsDialog').open;
     const languageSelect = document.getElementById('settingsLanguage');
-    const flagsAvailable = languageSelect.options[0].textContent.includes('🇫🇷') && languageSelect.options[1].textContent.includes('🇬🇧');
+    const flagsAvailable = languageSelect.options[0].textContent.includes('🇫🇷') && languageSelect.options[1].textContent.includes('🇬🇧')
+      && getComputedStyle(document.getElementById('languageFlag')).backgroundImage.includes('linear-gradient');
     const scriptBeforeLanguage = generate();
     languageSelect.value = 'en';
     languageSelect.dispatchEvent(new Event('change', {bubbles:true}));
@@ -76,14 +85,16 @@ try {
       if(node.parentElement.closest('#window,#projectTitle,#code,#visualCode,#settingsLanguage,textarea,script,style'))continue;
       if(/[éèêàùûôîïçÉÈÊÀÙÔÇ]/.test(node.textContent))frenchFragments.push(node.textContent.trim().slice(0,90));
     }
-    const englishSelected = document.documentElement.lang === 'en' && localStorage.getItem('ps-studio-language') === 'en'
+    const englishSelected = document.documentElement.lang === 'en' && document.getElementById('languageFlag').dataset.language === 'en'
+      && localStorage.getItem('ps-studio-language') === 'en'
       && document.getElementById('designTab').textContent.includes('Designer')
       && document.querySelector('#settingsDialog h2').textContent === 'Site settings'
       && generate() === scriptBeforeLanguage && document.getElementById('windowTitle').textContent === state.form.text
       && frenchFragments.length === 0;
     languageSelect.value = 'fr';
     languageSelect.dispatchEvent(new Event('change', {bubbles:true}));
-    const frenchRestored = document.documentElement.lang === 'fr' && document.getElementById('designTab').textContent.includes('Conception');
+    const frenchRestored = document.documentElement.lang === 'fr' && document.getElementById('languageFlag').dataset.language === 'fr'
+      && document.getElementById('designTab').textContent.includes('Conception');
     const eightPalettes = document.querySelectorAll('[data-palette-choice]').length === 8;
     document.querySelector('[data-palette-choice="ocean"]').click();
     const paletteChanged = document.documentElement.dataset.palette === 'ocean';
@@ -91,6 +102,7 @@ try {
     mode.value = 'dark';
     mode.dispatchEvent(new Event('change', {bubbles:true}));
     const darkChanged = document.documentElement.dataset.theme === 'dark';
+    const darkSyntax = getComputedStyle(codePane.querySelector('.ps-token--variable')).color === 'rgb(255, 173, 120)';
     const accentPicker = document.getElementById('settingsAccent');
     accentPicker.value = '#123456';
     accentPicker.dispatchEvent(new Event('input', {bubbles:true}));
@@ -108,6 +120,12 @@ try {
     const addedButton = state.controls.at(-1);
     const controlHandleSmall = getComputedStyle(document.querySelector('.control .handle-e')).width === '10px'
       && getComputedStyle(document.querySelector('.control .handle-se')).width === '12px';
+    const layoutButtons = [...document.querySelectorAll('#inspector .layout-actions button')];
+    const layoutIcons = layoutButtons.length === 10 && layoutButtons.every(button=>button.querySelector('svg.layout-icon') && button.title && button.getAttribute('aria-label'))
+      && layoutButtons.filter(button=>button.disabled).length === 8;
+    StudioI18n.setLanguage('en');
+    const layoutTranslated = layoutButtons[0].textContent.includes('Center') && layoutButtons[0].getAttribute('aria-label').includes('Center');
+    StudioI18n.setLanguage('fr');
     document.querySelector('.component[data-type="CheckBox"]').click();
     const addedCheckBox = state.controls.at(-1);
     document.getElementById('visualTab').click();
@@ -127,6 +145,9 @@ try {
     const visualTarget = document.getElementById('visualTarget');
     visualTarget.value = addedButton.name;
     visualTarget.dispatchEvent(new Event('change', {bubbles:true}));
+    const targetTooltip = document.getElementById('visualTargetHelp').title.includes('Bouton');
+    document.getElementById('visualTargetHelp').click();
+    const targetHelpOpens = document.getElementById('toast').textContent.includes('Bouton');
     document.querySelector('[data-add-kind="repeat"]').click();
     const nestedKind = document.querySelector('.vs-add-nested .vs-kind-picker');
     nestedKind.value = 'setText';
@@ -166,6 +187,7 @@ try {
       && document.getElementById('code').textContent.includes(addedButton.name + '.Text');
     addedCheckBox.text = 'Choix personnalisé';
     StudioI18n.setLanguage('en');
+    const englishTargetTooltip = document.getElementById('visualTargetHelp').title.startsWith('Button that');
     const projectTextPreserved = [...document.getElementById('visualTarget').options]
       .some(item=>item.textContent.includes('Check box') && item.textContent.includes('Choix personnalisé'));
     const visualFrenchFragments = [];
@@ -206,15 +228,17 @@ try {
     const features = tabsCentered && tabsClear && tipRemoved && dialogOpened && flagsAvailable && englishSelected && frenchRestored && englishGuide
       && eightPalettes && paletteChanged && darkChanged && accentChanged && accentReset
       && visualOpened && visualAdded && conditionConfigured && englishVisualComplete && projectTextPreserved && advancedAvailable && whileUsesLists
-      && visualFrameRemoved && allTooltips && tooltipOpens && englishTooltip
-      && formHandleSmall && controlHandleSmall && scrollPanels && pageFixed && headingsRemoved && designRestored;
+      && visualFrameRemoved && allTooltips && tooltipOpens && englishTooltip && targetTooltip && targetHelpOpens && englishTargetTooltip
+      && formHandleSmall && controlHandleSmall && scrollPanels && pageFixed && headingsRemoved && designRestored
+      && codeUnchanged && codeTokens && lightSyntax && darkSyntax && codeEscaped && layoutIcons && layoutTranslated;
     const diagnostics = {moved, centered, aligned, noPanInsideForm, unchanged,
       tabsCentered, tabsClear, navLeftRight:document.querySelector('nav>div:first-child').getBoundingClientRect().right,
       tabsLeft:tabsRect.left,tabsRight:tabsRect.right,helpLeft:document.getElementById('help').getBoundingClientRect().left,
       tipRemoved, dialogOpened, flagsAvailable, englishSelected, frenchFragments, frenchRestored, englishGuide,
       eightPalettes, paletteChanged, darkChanged, accentChanged, accentReset, visualOpened, visualAdded, conditionConfigured, englishVisualComplete, projectTextPreserved, visualFrenchFragments, advancedAvailable, whileUsesLists,
-      visualFrameRemoved, allTooltips, tooltipOpens, englishTooltip,
+      visualFrameRemoved, allTooltips, tooltipOpens, englishTooltip, targetTooltip, targetHelpOpens, englishTargetTooltip,
       formHandleSmall, controlHandleSmall, scrollPanels, pageFixed, headingsRemoved, designRestored,
+      codeUnchanged, codeTokens, lightSyntax, darkSyntax, codeEscaped, layoutIcons, layoutTranslated,
       pageHeight:document.documentElement.scrollHeight,windowHeight:window.innerHeight,
       flowHeight:flowPane.clientHeight,flowScrollHeight:flowPane.scrollHeight,
       xOffset: centeredRect.x + centeredRect.width / 2 - viewRect.x - viewRect.width / 2,

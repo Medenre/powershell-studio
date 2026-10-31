@@ -150,6 +150,7 @@
     document.documentElement.lang=language;
     document.title=language==='en'?'PowerShell Studio — Interface builder':'PowerShell Studio — Créateur d’interfaces';
     document.getElementById('settingsLanguage').value=language;
+    document.getElementById('languageFlag').dataset.language=language;
     try{localStorage.setItem('ps-studio-language',language);}catch{}
     window.VisualEditor?.renderPalette();
     if(!document.getElementById('visualView').hidden)window.VisualEditor?.render();

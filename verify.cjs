@@ -5,6 +5,14 @@ const path = require('node:path');
 const { spawnSync } = require('node:child_process');
 const core = require('./core.js');
 const visualCore = require('./visual-core.js');
+const syntax = require('./syntax.js');
+
+const syntaxSample = '# commentaire\r\n$nom = "valeur # texte"\r\nif ($true) { Write-Host $nom }';
+const syntaxTokens = syntax.tokenize(syntaxSample);
+assert.equal(syntaxTokens.map(token => token.text).join(''), syntaxSample);
+for (const kind of ['comment', 'variable', 'string', 'keyword', 'constant', 'command']) {
+  assert.ok(syntaxTokens.some(token => token.kind === kind), `Coloration absente : ${kind}`);
+}
 
 const versions = ['2.0', '3.0', '4.0', '5.1', '7.0'];
 const png = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIHWP4z8DwHwAFgAI/ScL/nwAAAABJRU5ErkJggg==';

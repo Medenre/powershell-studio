@@ -1,0 +1,21 @@
+/* PowerShell ISE palette: https://github.com/PowerShell/vscode-powershell/blob/main/themes/theme-psise/theme.json */
+#codeView{--ps-comment:#006400;--ps-operator:#a9a9a9;--ps-keyword:#00008b;--ps-constant:#008080;--ps-property:#2d2e45;--ps-variable:#ff4500;--ps-command:#0000ff;--ps-number:#800080;--ps-string:#8b0000;background:#fff;color:#000;border:1px solid var(--border)}
+#codeView .code-heading{border-bottom:1px solid var(--border);background:#f7f8fa;color:#263044}
+#codeView .code-heading small{color:#606c80}
+#code{white-space:pre;overflow-wrap:normal;min-width:max-content}
+#code .ps-token--comment{color:var(--ps-comment);font-style:italic}
+#code .ps-token--operator{color:var(--ps-operator)}
+#code .ps-token--keyword,#code .ps-token--type,#code .ps-token--parameter{color:var(--ps-keyword)}
+#code .ps-token--constant{color:var(--ps-constant)}
+#code .ps-token--property{color:var(--ps-property)}
+#code .ps-token--variable{color:var(--ps-variable)}
+#code .ps-token--command{color:var(--ps-command)}
+#code .ps-token--number{color:var(--ps-number)}
+#code .ps-token--string{color:var(--ps-string)}
+/* Contrast-adapted equivalents for the dark site appearance. */
+:root[data-theme=dark] #codeView{--ps-comment:#6ac77c;--ps-operator:#aab5c7;--ps-keyword:#88aaff;--ps-constant:#65d4d0;--ps-property:#d2d8e6;--ps-variable:#ffad78;--ps-command:#79b8ff;--ps-number:#d7a5ff;--ps-string:#f3a9a9;background:#171b28;color:#e4e8f2;border-color:#333a4e}
+:root[data-theme=dark] #codeView .code-heading{background:#202638;color:#e4e8f2;border-color:#333a4e}
+:root[data-theme=dark] #codeView .code-heading small{color:#aab5c7}
+.layout-actions button{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;min-height:58px;line-height:1.2;text-align:center}
+.layout-icon{width:25px;height:25px;flex:none;stroke:currentColor;stroke-width:1.65;stroke-linecap:round;stroke-linejoin:round;fill:none}
+.layout-actions button:not(:disabled) .layout-icon{color:var(--accent)}
