@@ -19,14 +19,60 @@
   }
   const targetType=name=>name==='MainForm'?'Form':state.controls.find(c=>c.name===name)?.type||'Form';
   const option=(value,label,selected)=>`<option value="${escapeHtml(value)}" ${value===selected?'selected':''}>${escapeHtml(label)}</option>`;
-  const targetOptions=value=>targets().map(item=>option(item.name,item.name==='MainForm'?'Fenêtre principale':`${item.name} · ${item.type}`,value)).join('')+(targets().some(item=>item.name===value)?'':option(value,`${value} (supprimé)`,value));
+  const targetLabel=item=>item.name==='MainForm'?'Fenêtre principale':`${types[item.type]?.[0]||item.type} · ${(item.text||item.name).replace(/\s+/g,' ').slice(0,26)} (${item.name})`;
+  const targetOptions=value=>targets().map(item=>option(item.name,targetLabel(item),value)).join('')+(targets().some(item=>item.name===value)?'':option(value,`${value} (supprimé)`,value));
+  const propertyLabels={Text:'Texte',Enabled:'Activé',Visible:'Visible',BackColor:'Couleur de fond',ForeColor:'Couleur du texte',Width:'Largeur',Height:'Hauteur',Left:'Position X',Top:'Position Y',Tag:'Étiquette libre',ReadOnly:'Lecture seule',Checked:'Coché',SelectedIndex:'Choix sélectionné',Value:'Valeur'};
+  const propertyLabel=name=>propertyLabels[name]||name;
+  const propertyValueType=name=>['Checked','Enabled','Visible','ReadOnly'].includes(name)?'boolean':['Width','Height','Left','Top','SelectedIndex','Value'].includes(name)?'number':'text';
+  const eventLabels={Load:'À l’ouverture',Shown:'Fenêtre affichée',FormClosing:'Avant fermeture',Click:'Au clic',DoubleClick:'Au double clic',TextChanged:'Texte modifié',CheckedChanged:'Case modifiée',SelectedIndexChanged:'Choix modifié',ValueChanged:'Valeur modifiée',MouseEnter:'Début du survol',MouseLeave:'Fin du survol',Enter:'Entrée dans le champ',Leave:'Sortie du champ',KeyDown:'Touche pressée'};
+  function availableVariables(){
+    const names=new Set();
+    const visit=steps=>{for(const step of steps){
+      if(VisualScripting.byKind[step.kind]?.fields.some(([key,,type])=>key==='variable'&&type==='variable')&&step.variable)names.add(step.variable);
+      for(const branch of VisualScripting.byKind[step.kind]?.branches||[])visit(step[branch]||[]);
+    }};
+    for(const item of targets())for(const steps of Object.values(item.visualEvents||{}))visit(steps);
+    return [...names].sort((a,b)=>a.localeCompare(b,'fr'));
+  }
+  const variableOptions=value=>{
+    const names=availableVariables();
+    return names.map(name=>option(name,name,value)).join('')+(names.includes(value)?'':option(value,`${value} (à définir)`,value));
+  };
+  const conditionField=(label,html)=>`<label class="vs-field"><span>${escapeHtml(label)}</span>${html}</label>`;
+  const conditionSelect=(key,items,value)=>`<select data-condition-key="${key}">${items.map(([id,label])=>option(id,label,value)).join('')}</select>`;
+  const propertyOptions=(target,value)=>{
+    const names=VisualScripting.propertiesFor(targetType(target));
+    return names.map(name=>option(name,propertyLabel(name),value)).join('')+(names.includes(value)?'':option(value,`${value} (incompatible)`,value));
+  };
+  function conditionRowHtml(row,index,total){
+    const left=conditionField('Comparer',conditionSelect('leftSource',[['variable','Variable'],['control','Propriété d’un composant']],row.leftSource));
+    const leftDetails=row.leftSource==='control'
+      ?conditionField('Composant',`<select data-condition-key="leftTarget">${targetOptions(row.leftTarget)}</select>`)+conditionField('Propriété',`<select data-condition-key="leftProperty">${propertyOptions(row.leftTarget,row.leftProperty)}</select>`)
+      :conditionField('Variable',`<select data-condition-key="leftVariable">${variableOptions(row.leftVariable)}</select>`);
+    const operators=[['eq','est égal à'],['ne','est différent de'],['gt','est supérieur à'],['ge','est supérieur ou égal à'],['lt','est inférieur à'],['le','est inférieur ou égal à'],['contains','contient'],['notContains','ne contient pas']];
+    const right=conditionField('Avec',conditionSelect('rightSource',[['literal','Valeur fixe'],['variable','Variable'],['control','Propriété d’un composant']],row.rightSource));
+    const rightDetails=row.rightSource==='control'
+      ?conditionField('Composant',`<select data-condition-key="rightTarget">${targetOptions(row.rightTarget)}</select>`)+conditionField('Propriété',`<select data-condition-key="rightProperty">${propertyOptions(row.rightTarget,row.rightProperty)}</select>`)
+      :row.rightSource==='variable'?conditionField('Variable',`<select data-condition-key="rightVariable">${variableOptions(row.rightVariable)}</select>`)
+      :conditionField('Valeur',row.valueType==='boolean'?conditionSelect('rightValue',[['true','Vrai'],['false','Faux']],row.rightValue):`<input data-condition-key="rightValue" type="${row.valueType==='number'?'number':'text'}" value="${escapeHtml(row.rightValue)}" ${row.valueType==='number'?'step="any"':''}>`);
+    const join=index?conditionField('Lien',conditionSelect('join',[['and','ET'],['or','OU']],row.join)):'<span class="vs-condition-join">SI</span>';
+    return `<div class="vs-condition-row" data-condition-index="${index}">${join}${left}${leftDetails}${conditionField('Comparaison',conditionSelect('operator',operators,row.operator))}${right}${conditionField('Type de valeur',conditionSelect('valueType',[['text','Texte'],['number','Nombre'],['boolean','Vrai / Faux']],row.valueType))}${rightDetails}${total>1?'<button type="button" data-condition-remove title="Retirer cette condition">Retirer</button>':''}</div>`;
+  }
+  function conditionEditorHtml(step){
+    const mode=step.conditionMode||'code';
+    const chooser=conditionField('Mode de condition',`<select data-condition-mode>${option('builder','Listes de choix (sans code)',mode)}${option('code','PowerShell avancé',mode)}</select>`);
+    const content=mode==='builder'
+      ?`<div class="vs-condition-list">${(step.conditions||[]).map((row,index,all)=>conditionRowHtml(row,index,all.length)).join('')}</div><button type="button" data-condition-add ${step.conditions?.length>=12?'disabled':''}>+ Ajouter une condition (ET / OU)</button><p class="vs-condition-help">Les variables proposées viennent des autres blocs. Pour en créer une, ajoutez « Définir une variable » avant cette condition.</p>`
+      :fieldHtml(step,['condition','Condition PowerShell','expression']);
+    return `<div class="vs-condition-editor">${chooser}${content}${step.kind==='while'?fieldHtml(step,['limit','Nombre maximal de tours','number']):''}</div>`;
+  }
   function fieldHtml(step,[key,label,type]){
     const value=step[key]??'';
     let control;
     if(type==='target')control=`<select data-field="${key}">${targetOptions(value)}</select>`;
     else if(type==='property'||type==='booleanProperty'){
       const available=type==='booleanProperty'?['Enabled','Visible',...(targetType(step.target)==='CheckBox'||targetType(step.target)==='RadioButton'?['Checked']:[]),...(targetType(step.target)==='TextBox'?['ReadOnly']:[])]:VisualScripting.propertiesFor(targetType(step.target));
-      control=`<select data-field="${key}">${available.map(item=>option(item,item,value)).join('')}${available.includes(value)?'':option(value,`${value} (incompatible)`,value)}</select>`;
+      control=`<select data-field="${key}">${available.map(item=>option(item,propertyLabel(item),value)).join('')}${available.includes(value)?'':option(value,`${value} (incompatible)`,value)}</select>`;
     }else if(type==='mode')control=`<select data-field="${key}">${option('literal','Texte fixe',value)}${option('expression','Expression PowerShell',value)}</select>`;
     else if(type==='text'||type==='code')control=`<textarea data-field="${key}" ${type==='code'?'spellcheck="false"':''}>${escapeHtml(value)}</textarea>`;
     else control=`<input data-field="${key}" value="${escapeHtml(value)}" ${type==='expression'?'spellcheck="false"':''} ${type==='number'?'type="number" min="1" max="1000000"':'type="text"'}>`;
@@ -39,15 +85,16 @@
       const def=VisualScripting.byKind[step.kind];
       if(!def)return '';
       const branches=(def.branches||[]).map(branch=>`<div class="vs-branch"><div class="vs-branch-title">${escapeHtml(VisualScripting.branchLabel[branch])}</div>${renderList(step[branch],depth+1)}<div class="vs-add-nested">${kindPicker()}<button data-add-branch="${branch}" data-parent="${step.id}">+ Ajouter</button></div></div>`).join('');
-      return `<article class="vs-block vs-${escapeHtml(def.group.toLowerCase())}" data-step-id="${escapeHtml(step.id)}"><div class="vs-block-head"><strong>${escapeHtml(def.label)}</strong><div><button data-move="up" title="Monter">↑</button><button data-move="down" title="Descendre">↓</button><button data-delete title="Supprimer">×</button></div></div><div class="vs-fields">${def.fields.map(field=>fieldHtml(step,field)).join('')}</div>${branches}</article>`;
+      const fields=['if','while'].includes(step.kind)?conditionEditorHtml(step):`<div class="vs-fields">${def.fields.map(field=>fieldHtml(step,field)).join('')}</div>`;
+      return `<article class="vs-block vs-${escapeHtml(def.group.toLowerCase())}" data-step-id="${escapeHtml(step.id)}"><div class="vs-block-head"><strong>${escapeHtml(def.label)}</strong><div><button data-move="up" title="Monter">↑</button><button data-move="down" title="Descendre">↓</button><button data-delete title="Supprimer">×</button></div></div>${fields}${branches}</article>`;
     }).join('');
   }
   function render(){
     if(!targets().some(item=>item.name===selectedTarget))selectedTarget='MainForm';
     const allowed=VisualScripting.eventsFor(owner().type||'Form');
     if(!allowed.includes(selectedEvent))selectedEvent=allowed[0];
-    $('visualTarget').innerHTML=targets().map(item=>option(item.name,item.name==='MainForm'?'Fenêtre principale':`${item.name} · ${item.type}`,selectedTarget)).join('');
-    $('visualEvent').innerHTML=allowed.map(name=>option(name,name,selectedEvent)).join('');
+    $('visualTarget').innerHTML=targets().map(item=>option(item.name,targetLabel(item),selectedTarget)).join('');
+    $('visualEvent').innerHTML=allowed.map(name=>option(name,`${eventLabels[name]||name} (${name})`,selectedEvent)).join('');
     const blocks=eventList();
     $('visualBlocks').innerHTML=blocks.length?renderList(blocks):'<p class="vs-empty">Aucun bloc pour cet événement. Choisissez une action dans la colonne de gauche.</p>';
     const manual=owner().type==='Button'&&selectedEvent==='Click'&&owner().action;
@@ -70,6 +117,18 @@
     checkpoint();eventList().push(VisualScripting.createStep(button.dataset.addKind));commit();
   };
   $('visualBlocks').onclick=e=>{
+    const addCondition=e.target.closest('[data-condition-add]');
+    if(addCondition){
+      const step=findLocation(eventList(),addCondition.closest('[data-step-id]').dataset.stepId)?.step;
+      if(!step||step.conditions.length>=12)return;
+      checkpoint();step.conditions.push(VisualScripting.defaultCondition(step.kind));commit();return;
+    }
+    const removeCondition=e.target.closest('[data-condition-remove]');
+    if(removeCondition){
+      const step=findLocation(eventList(),removeCondition.closest('[data-step-id]').dataset.stepId)?.step;
+      if(!step||step.conditions.length<=1)return;
+      checkpoint();step.conditions.splice(Number(removeCondition.closest('[data-condition-index]').dataset.conditionIndex),1);commit();return;
+    }
     const nested=e.target.closest('[data-add-branch]');
     if(nested){
       const parent=findLocation(eventList(),nested.dataset.parent)?.step;
@@ -87,12 +146,45 @@
     commit();
   };
   $('visualBlocks').oninput=e=>{
+    const conditionField=e.target.closest('input[data-condition-key]');
+    if(conditionField){
+      const step=findLocation(eventList(),conditionField.closest('[data-step-id]').dataset.stepId)?.step;
+      const row=step?.conditions?.[Number(conditionField.closest('[data-condition-index]').dataset.conditionIndex)];
+      if(!row)return;
+      beginTextEdit(conditionField);row[conditionField.dataset.conditionKey]=conditionField.value;
+      scheduleTypingUpdate();updatePreview();return;
+    }
     const field=e.target.closest('[data-field]');if(!field||field.tagName==='SELECT')return;
     const step=findLocation(eventList(),field.closest('[data-step-id]').dataset.stepId)?.step;if(!step)return;
     beginTextEdit(field);step[field.dataset.field]=field.value;
     scheduleTypingUpdate();updatePreview();
   };
   $('visualBlocks').onchange=e=>{
+    const modeField=e.target.closest('select[data-condition-mode]');
+    if(modeField){
+      const step=findLocation(eventList(),modeField.closest('[data-step-id]').dataset.stepId)?.step;
+      if(!step)return;
+      checkpoint();step.conditionMode=modeField.value;
+      if(step.conditionMode==='builder'&&!step.conditions?.length)step.conditions=[VisualScripting.defaultCondition(step.kind)];
+      commit();return;
+    }
+    const conditionField=e.target.closest('select[data-condition-key]');
+    if(conditionField){
+      const step=findLocation(eventList(),conditionField.closest('[data-step-id]').dataset.stepId)?.step;
+      const row=step?.conditions?.[Number(conditionField.closest('[data-condition-index]').dataset.conditionIndex)];
+      if(!row)return;
+      checkpoint();const key=conditionField.dataset.conditionKey;row[key]=conditionField.value;
+      if(key==='leftTarget')row.leftProperty=VisualScripting.propertiesFor(targetType(row.leftTarget))[0];
+      if(key==='rightTarget')row.rightProperty=VisualScripting.propertiesFor(targetType(row.rightTarget))[0];
+      if(row.leftSource==='control'&&['leftSource','leftTarget','leftProperty'].includes(key))row.valueType=propertyValueType(row.leftProperty);
+      if(key==='valueType'){
+        if(row.valueType==='boolean'&&!['true','false'].includes(row.rightValue))row.rightValue='true';
+        if(row.valueType==='number'&&!/^-?\d+(?:\.\d+)?$/.test(row.rightValue))row.rightValue='0';
+      }
+      if(row.rightSource==='literal'&&row.valueType==='boolean'&&!['true','false'].includes(row.rightValue))row.rightValue='true';
+      if(row.rightSource==='literal'&&row.valueType==='number'&&!/^-?\d+(?:\.\d+)?$/.test(row.rightValue))row.rightValue='0';
+      commit();return;
+    }
     const field=e.target.closest('select[data-field]');if(!field)return;
     const step=findLocation(eventList(),field.closest('[data-step-id]').dataset.stepId)?.step;if(!step)return;
     checkpoint();step[field.dataset.field]=field.value;

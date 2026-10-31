@@ -49,6 +49,16 @@ const VisualScripting = (() => {
     {kind:'raw',label:'Code PowerShell libre',group:'Avancé',fields:[['code','Code','code']]}
   ];
   const byKind = Object.fromEntries(definitions.map(def => [def.kind, def]));
+  const conditionKinds = ['if','while'];
+  const conditionSources = ['variable','control','literal'];
+  const conditionOperators = ['eq','ne','gt','ge','lt','le','contains','notContains'];
+  const conditionTypes = ['text','number','boolean'];
+  const defaultCondition = kind => ({
+    join:'and',leftSource:'variable',leftVariable:kind==='while'?'continuer':'compteur',
+    leftTarget:'MainForm',leftProperty:'Text',operator:kind==='while'?'eq':'gt',
+    rightSource:'literal',rightValue:kind==='while'?'true':'5',valueType:kind==='while'?'boolean':'number',
+    rightVariable:'valeur',rightTarget:'MainForm',rightProperty:'Text'
+  });
   const defaults = {
     message:{value:'Bonjour !',mode:'literal'}, confirm:{value:'Continuer ?',mode:'literal'},
     setText:{target:'MainForm',value:'Nouveau texte',mode:'literal'},
@@ -75,6 +85,7 @@ const VisualScripting = (() => {
     const def = byKind[kind];
     if(!def) throw Error('Bloc inconnu');
     const step = {id:`block_${Date.now().toString(36)}_${++nextId}`,kind,...defaults[kind]};
+    if(conditionKinds.includes(kind)){step.conditionMode='builder';step.conditions=[defaultCondition(kind)];}
     for(const branch of def.branches || []) step[branch]=[];
     return step;
   };
@@ -100,6 +111,30 @@ const VisualScripting = (() => {
           if(type==='number'&&(!/^\d+$/.test(value)||Number(value)>1000000))throw Error('Limite de boucle invalide');
           step[key]=value;
         }
+        if(conditionKinds.includes(item.kind)){
+          step.conditionMode=item.conditionMode===undefined?'code':item.conditionMode;
+          if(!['builder','code'].includes(step.conditionMode))throw Error('Mode de condition invalide');
+          if(step.conditionMode==='builder'){
+            if(!Array.isArray(item.conditions)||!item.conditions.length||item.conditions.length>12)throw Error('Conditions visuelles invalides');
+            step.conditions=item.conditions.map(row=>{
+              if(!row||typeof row!=='object'||Array.isArray(row))throw Error('Condition visuelle invalide');
+              const clean={...defaultCondition(item.kind)};
+              for(const key of Object.keys(clean)){
+                if(row[key]!==undefined)clean[key]=row[key];
+                if(typeof clean[key]!=='string'||clean[key].length>1000)throw Error('Valeur de condition invalide');
+              }
+              if(!['and','or'].includes(clean.join)||!['variable','control'].includes(clean.leftSource)
+                ||!conditionSources.includes(clean.rightSource)||!conditionOperators.includes(clean.operator)
+                ||!conditionTypes.includes(clean.valueType))throw Error('Choix de condition invalide');
+              for(const key of ['leftVariable','rightVariable'])if(!/^[A-Za-z_][A-Za-z0-9_]*$/.test(clean[key]))throw Error('Variable de condition invalide');
+              for(const key of ['leftTarget','rightTarget'])if(!/^(MainForm|ctrl_[A-Za-z0-9_]+)$/.test(clean[key]))throw Error('Composant de condition invalide');
+              for(const key of ['leftProperty','rightProperty'])if(!commonProperties.concat(Object.values(specificProperties).flat()).includes(clean[key]))throw Error('Propriété de condition invalide');
+              if(clean.rightSource==='literal'&&clean.valueType==='number'&&!/^-?\d+(?:\.\d+)?$/.test(clean.rightValue))clean.rightValue='0';
+              if(clean.rightSource==='literal'&&clean.valueType==='boolean'&&!['true','false'].includes(clean.rightValue))clean.rightValue='false';
+              return clean;
+            });
+          }
+        }
         for(const branch of def.branches||[])step[branch]=list(item[branch]||[],depth+1);
         return step;
       });
@@ -112,6 +147,33 @@ const VisualScripting = (() => {
   const targetRef=(project,name)=>name==='MainForm'?'$MainForm':project.controls.some(c=>c.name===name)?`$${name}`:null;
   const variableRef=name=>`$StudioVars[${quote(name)}]`;
   const branchLabel={then:'Alors',else:'Sinon',yes:'Si oui',no:'Si non',body:'Faire',catch:'En cas d’erreur'};
+  function compileCondition(project,step){
+    if(step.conditionMode!=='builder')return step.condition||'$false';
+    const operand=(row,side)=>{
+      const source=row[`${side}Source`];
+      if(source==='variable')return variableRef(row[`${side}Variable`]);
+      if(source==='control'){
+        const target=targetRef(project,row[`${side}Target`]);
+        return target?`${target}.${row[`${side}Property`]}`:'$null';
+      }
+      if(row.valueType==='boolean')return row.rightValue==='true'?'$true':'$false';
+      if(row.valueType==='number')return /^-?\d+(?:\.\d+)?$/.test(row.rightValue)?row.rightValue:'0';
+      return quote(row.rightValue);
+    };
+    const cast=(value,type)=>type==='number'?`[double](${value})`:type==='boolean'?`([string](${value}) -ieq 'true')`:`[string](${value})`;
+    const operators={eq:'-eq',ne:'-ne',gt:'-gt',ge:'-ge',lt:'-lt',le:'-le'};
+    const rows=step.conditions||[];
+    let result='';
+    for(const row of rows){
+      const left=operand(row,'left'),right=operand(row,'right');
+      let current;
+      if(row.operator==='contains'||row.operator==='notContains'){
+        current=`(${cast(left,'text')}).IndexOf(${cast(right,'text')}, [System.StringComparison]::OrdinalIgnoreCase) ${row.operator==='contains'?'-ge':'-lt'} 0`;
+      }else current=`${cast(left,row.valueType)} ${operators[row.operator]||'-eq'} ${cast(right,row.valueType)}`;
+      result=result?`(${result} ${row.join==='or'?'-or':'-and'} (${current}))`:`(${current})`;
+    }
+    return result||'$false';
+  }
   function compileList(project,steps,depth=1){
     const lines=[],pad='    '.repeat(depth);
     for(const step of steps){
@@ -137,10 +199,10 @@ const VisualScripting = (() => {
         case 'readProperty':lines.push(`${pad}${v()} = ${target}.${step.property}`);break;
         case 'setVariable':lines.push(`${pad}${v()} = ${value()}`);break;
         case 'increment':lines.push(`${pad}${v()} = [int]${v()} + [int]${value()}`);break;
-        case 'if':lines.push(`${pad}if (${step.condition||'$false'}) {`,...nested(step.then),`${pad}} else {`,...nested(step.else),`${pad}}`);break;
+        case 'if':lines.push(`${pad}if (${compileCondition(project,step)}) {`,...nested(step.then),`${pad}} else {`,...nested(step.else),`${pad}}`);break;
         case 'repeat':lines.push(`${pad}$StudioCount_${safeId} = [Math]::Max(0, [int](${step.count||'0'}))`,`${pad}for ($StudioIndex_${safeId} = 0; $StudioIndex_${safeId} -lt $StudioCount_${safeId}; $StudioIndex_${safeId}++) {`,`${pad}    ${v()} = $StudioIndex_${safeId}`,...nested(step.body),`${pad}}`);break;
         case 'foreach':lines.push(`${pad}foreach ($StudioItem_${safeId} in (${step.collection||'@()'})) {`,`${pad}    ${v()} = $StudioItem_${safeId}`,...nested(step.body),`${pad}}`);break;
-        case 'while':lines.push(`${pad}$StudioGuard_${safeId} = 0`,`${pad}while ((${step.condition||'$false'}) -and ($StudioGuard_${safeId} -lt ${step.limit})) {`,`${pad}    $StudioGuard_${safeId}++`,...nested(step.body),`${pad}}`);break;
+        case 'while':lines.push(`${pad}$StudioGuard_${safeId} = 0`,`${pad}while ((${compileCondition(project,step)}) -and ($StudioGuard_${safeId} -lt ${step.limit})) {`,`${pad}    $StudioGuard_${safeId}++`,...nested(step.body),`${pad}}`);break;
         case 'tryCatch':lines.push(`${pad}try {`,...nested(step.body),`${pad}} catch {`,`${pad}    ${v()} = $_.Exception.Message`,...nested(step.catch),`${pad}}`);break;
         case 'delay':lines.push(`${pad}Start-Sleep -Milliseconds ([Math]::Max(0, [int](${step.value||'0'})))`);break;
         case 'writeOutput':lines.push(`${pad}Write-Output ${value()}`);break;
@@ -179,6 +241,10 @@ const VisualScripting = (() => {
     function visit(steps){
       for(const step of steps){
         if(step.target===oldName)step.target=newName;
+        if(step.conditionMode==='builder')for(const row of step.conditions||[]){
+          if(row.leftTarget===oldName)row.leftTarget=newName;
+          if(row.rightTarget===oldName)row.rightTarget=newName;
+        }
         for(const branch of byKind[step.kind]?.branches||[])visit(step[branch]||[]);
       }
     }
@@ -186,6 +252,6 @@ const VisualScripting = (() => {
       for(const steps of Object.values(owner.visualEvents||{}))visit(steps);
     }
   }
-  return {eventsFor,propertiesFor,definitions,byKind,branchLabel,createStep,normalizeEvents,compileList,compileHandlers,renameTarget};
+  return {eventsFor,propertiesFor,definitions,byKind,branchLabel,createStep,defaultCondition,normalizeEvents,compileCondition,compileList,compileHandlers,renameTarget};
 })();
 if(typeof module!=='undefined'&&module.exports)module.exports=VisualScripting;

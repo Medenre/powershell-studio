@@ -2,7 +2,7 @@
 
 Éditeur visuel d’interfaces Windows Forms avec export PowerShell. Application statique en français, sans dépendance, sans compilation et sans serveur applicatif.
 
-**Version de l’application : 1.3.1** (31 octobre 2026). Cette numérotation est distincte du format de projet JSON (`version: 1`) et de la version PowerShell ciblée.
+**Version de l’application : 1.4.0** (31 octobre 2026). Cette numérotation est distincte du format de projet JSON (`version: 1`) et de la version PowerShell ciblée.
 
 ## Fonctionnalités
 
@@ -11,7 +11,7 @@
 - Zoom et dézoom avec recentrage automatique.
 - Dans le canevas, glisser au clic gauche sur le fond vide autour de la fenêtre pour déplacer la vue ; cliquer avec la molette pour recentrer l’interface.
 - Fenêtre **Paramètres** : huit palettes de couleurs en version claire ou sombre, accent personnalisé et mémorisation locale.
-- Onglet **Visual scripting** : événements des composants, blocs d’interface, variables, conditions, boucles, fichiers, actions et code PowerShell libre.
+- Onglet **Visual scripting** : événements des composants, blocs d’interface, variables, conditions à créer par listes de choix, boucles, fichiers, actions et code PowerShell libre.
 - Choix de PowerShell 2.0, 3.0, 4.0, 5.1 ou 7 dans les propriétés de la fenêtre.
 - Régénération du code et téléchargement direct d’un `.ps1` UTF-8 avec BOM.
 - Enregistrement et ouverture des projets JSON, sauvegarde locale, annuler/rétablir.
@@ -33,6 +33,8 @@ Le bouton **Paramètres** ouvre le choix de l’apparence claire ou sombre, des 
 Dans **Conception**, ajouter les composants. Ouvrir **Visual scripting**, choisir le composant et son événement (par exemple **Bouton → Click**), puis ajouter les blocs depuis la colonne de gauche. Les flèches changent leur ordre ; les boutons à l’intérieur d’une branche ajoutent des blocs imbriqués. Dans un champ « Valeur », choisir **Texte fixe** pour du texte échappé automatiquement ou **Expression PowerShell** pour une expression évaluée au moment de l’événement. Le bloc d’écriture de fichier propose ce choix séparément pour le chemin et le contenu. Les variables visuelles sont accessibles sous la forme `$StudioVars['nom']` dans les expressions et le code libre.
 
 Exemple : pour changer un libellé trois fois au clic d’un bouton, ajouter **Répéter N fois** avec `3`, puis **Changer un texte** dans sa branche **Faire** ; sélectionner le libellé et renseigner `$StudioVars['i']` en mode expression. Le compteur commence à zéro. La vue **Code PowerShell** montre le résultat complet avant l’export. Pour un bouton, le code manuel de la propriété **Événement · Click** reste pris en charge et s’exécute après les blocs visuels.
+
+Dans **Condition Si / Sinon** et **Tant que**, le mode par défaut utilise des listes : choisir une variable ou la propriété d’un composant, puis « est égal à », « est supérieur à », « contient », etc. La valeur à comparer peut être du texte, un nombre, vrai/faux, une autre variable ou une autre propriété. **Ajouter une condition** permet de combiner plusieurs règles avec **ET** ou **OU**. Par exemple : sélectionner la propriété **Coché** d’une case à cocher, choisir **est égal à**, **Vrai / Faux**, puis **Vrai**. Les variables proposées proviennent des blocs du projet ; placer **Définir une variable** avant sa lecture. Pour **Tant que**, une variable `continuer` peut être définie à `true` avant la boucle, puis à `false` dans sa branche **Faire** pour l’arrêter ; la limite de tours reste une protection. Les anciens projets qui contiennent une condition PowerShell écrite à la main restent en **mode avancé**.
 
 ## Publication sur GitHub Pages
 
@@ -117,6 +119,12 @@ Vérifications : `node verify.cjs` teste le modèle, la géométrie, la validati
 Ouvrir `index.html` pour utiliser l’application. Facultatif : `node verify.cjs` exécute les vérifications du modèle et du générateur sans dépendance. Les nouveaux réglages sont enregistrés dans le projet JSON. En sélection multiple, les propriétés individuelles concernent le dernier élément sélectionné ; les outils Mise en page concernent toute la sélection.
 
 ## Historique des versions
+
+### 1.4.0 — 31 octobre 2026
+
+- Constructeur de conditions sans code pour **Si / Sinon** et **Tant que** : listes de variables et de propriétés de composants, comparateurs, valeurs typées et règles combinées avec **ET / OU**.
+- Conversion des règles en PowerShell compatible avec les cinq cibles ; validation des choix enregistrés et suivi des noms de composants renommés.
+- Mode avancé conservé pour les anciennes conditions PowerShell et les besoins particuliers. Tests navigateur et exécution native d’une condition dans une boucle déclenchée par un bouton.
 
 ### 1.3.1 — 31 octobre 2026
 

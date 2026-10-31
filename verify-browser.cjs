@@ -77,6 +77,8 @@ try {
     const addedButton = state.controls.at(-1);
     const controlHandleSmall = getComputedStyle(document.querySelector('.control .handle-e')).width === '10px'
       && getComputedStyle(document.querySelector('.control .handle-se')).width === '12px';
+    document.querySelector('.component[data-type="CheckBox"]').click();
+    const addedCheckBox = state.controls.at(-1);
     document.getElementById('visualTab').click();
     const visualOpened = !document.getElementById('visualView').hidden;
     const visualTarget = document.getElementById('visualTarget');
@@ -90,6 +92,47 @@ try {
       && addedButton.visualEvents.Click[0].body[0].kind === 'setText'
       && document.getElementById('visualBlocks').querySelectorAll('.vs-block').length === 2
       && document.getElementById('code').textContent.includes('Add_Click');
+    document.querySelector('[data-add-kind="if"]').click();
+    const conditionBlock = addedButton.visualEvents.Click.at(-1);
+    const conditionElement = () => document.querySelector('[data-step-id="' + conditionBlock.id + '"]');
+    const choose = (key,value,index=0) => {
+      const select = conditionElement().querySelectorAll('[data-condition-index]')[index].querySelector('[data-condition-key="' + key + '"]');
+      select.value = value;
+      select.dispatchEvent(new Event('change', {bubbles:true}));
+    };
+    choose('leftSource','control');
+    choose('leftTarget',addedButton.name);
+    choose('operator','eq');
+    choose('valueType','text');
+    const conditionValue = conditionElement().querySelector('input[data-condition-key="rightValue"]');
+    conditionValue.value = 'Action';
+    conditionValue.dispatchEvent(new Event('input', {bubbles:true}));
+    conditionElement().querySelector('[data-condition-add]').click();
+    choose('join','or',1);
+    choose('leftSource','control',1);
+    choose('leftTarget',addedCheckBox.name,1);
+    choose('leftProperty','Checked',1);
+    const conditionConfigured = conditionBlock.conditionMode === 'builder'
+      && conditionBlock.conditions.length === 2
+      && conditionBlock.conditions[0].leftTarget === addedButton.name
+      && conditionBlock.conditions[0].rightValue === 'Action'
+      && conditionBlock.conditions[1].leftTarget === addedCheckBox.name
+      && conditionBlock.conditions[1].valueType === 'boolean'
+      && conditionBlock.conditions[1].rightValue === 'true'
+      && conditionBlock.conditions[1].join === 'or'
+      && document.getElementById('code').textContent.includes(addedButton.name + '.Text');
+    const advancedMode = conditionElement().querySelector('[data-condition-mode]');
+    advancedMode.value = 'code';
+    advancedMode.dispatchEvent(new Event('change', {bubbles:true}));
+    const advancedAvailable = conditionBlock.conditionMode === 'code'
+      && !!conditionElement().querySelector('[data-field="condition"]');
+    const listMode = conditionElement().querySelector('[data-condition-mode]');
+    listMode.value = 'builder';
+    listMode.dispatchEvent(new Event('change', {bubbles:true}));
+    document.querySelector('[data-add-kind="while"]').click();
+    const whileBlock = addedButton.visualEvents.Click.at(-1);
+    const whileUsesLists = whileBlock.conditionMode === 'builder'
+      && !!document.querySelector('[data-step-id="' + whileBlock.id + '"] .vs-condition-row');
     for(let i=0;i<16;i++)addedButton.visualEvents.Click.push(VisualScripting.createStep('message'));
     VisualEditor.render();
     const palettePane = document.getElementById('visualPalette');
@@ -105,9 +148,10 @@ try {
     const designRestored = !document.body.classList.contains('visual-active')
       && getComputedStyle(document.querySelector('.workspace-heading')).display !== 'none';
     const features = dialogOpened && eightPalettes && paletteChanged && darkChanged && accentChanged && accentReset
-      && visualOpened && visualAdded && formHandleSmall && controlHandleSmall && scrollPanels && pageFixed && headingsRemoved && designRestored;
+      && visualOpened && visualAdded && conditionConfigured && advancedAvailable && whileUsesLists
+      && formHandleSmall && controlHandleSmall && scrollPanels && pageFixed && headingsRemoved && designRestored;
     const diagnostics = {moved, centered, aligned, noPanInsideForm, unchanged,
-      dialogOpened, eightPalettes, paletteChanged, darkChanged, accentChanged, accentReset, visualOpened, visualAdded,
+      dialogOpened, eightPalettes, paletteChanged, darkChanged, accentChanged, accentReset, visualOpened, visualAdded, conditionConfigured, advancedAvailable, whileUsesLists,
       formHandleSmall, controlHandleSmall, scrollPanels, pageFixed, headingsRemoved, designRestored,
       pageHeight:document.documentElement.scrollHeight,windowHeight:window.innerHeight,
       flowHeight:flowPane.clientHeight,flowScrollHeight:flowPane.scrollHeight,
@@ -142,6 +186,7 @@ try {
   assert.equal(desktopResult, 'PASS', desktopResult || desktop.stderr);
   const desktopFeatures = [...desktop.stdout.matchAll(/<output id="featureResult">([^<]*)<\/output>/g)].at(-1)?.[1];
   assert.equal(desktopFeatures, 'PASS', desktopFeatures || desktop.stderr);
+  console.log('PASS: conditions sans code, listes de composants, mode avancé et boucle Tant que sur mobile et bureau');
   console.log('PASS: poignées réduites et défilement limité aux panneaux Visual scripting sur mobile et bureau');
   console.log('PASS: réglages, huit palettes et boucle visuelle imbriquée sur mobile et bureau');
   console.log('PASS: page statique chargée dans le navigateur, éditeur et code généré visibles');

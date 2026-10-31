@@ -23,4 +23,4 @@ $errors = $null
 [void][System.Management.Automation.Language.Parser]::ParseFile($visualFile, [ref]$tokens, [ref]$errors)
 if ($errors.Count -gt 0) { throw ('Erreur de syntaxe des blocs visuels : ' + $errors[0].Message) }
 & $visualFile
-Write-Output 'Boucle visuelle exécutée au clic sur un bouton'
+Write-Output 'Boucle et conditions visuelles exécutées au clic sur un bouton'
