@@ -55,6 +55,7 @@ try {
     pointer(window, 'pointerup', {button: 0, clientX: 250, clientY: 250});
     const noPanInsideForm = panOffset.x === 0 && panOffset.y === 0;
     const unchanged = state.form.w === width && undoStack.length === historyCount;
+    const formHandleSmall = getComputedStyle(document.querySelector('#formHandles .handle-e')).width === '10px';
     document.getElementById('settings').click();
     const dialogOpened = document.getElementById('settingsDialog').open;
     const eightPalettes = document.querySelectorAll('[data-palette-choice]').length === 8;
@@ -74,6 +75,8 @@ try {
     document.getElementById('closeSettings').click();
     document.querySelector('.component[data-type="Button"]').click();
     const addedButton = state.controls.at(-1);
+    const controlHandleSmall = getComputedStyle(document.querySelector('.control .handle-e')).width === '10px'
+      && getComputedStyle(document.querySelector('.control .handle-se')).width === '12px';
     document.getElementById('visualTab').click();
     const visualOpened = !document.getElementById('visualView').hidden;
     const visualTarget = document.getElementById('visualTarget');
@@ -87,9 +90,27 @@ try {
       && addedButton.visualEvents.Click[0].body[0].kind === 'setText'
       && document.getElementById('visualBlocks').querySelectorAll('.vs-block').length === 2
       && document.getElementById('code').textContent.includes('Add_Click');
-    const features = dialogOpened && eightPalettes && paletteChanged && darkChanged && accentChanged && accentReset && visualOpened && visualAdded;
+    for(let i=0;i<16;i++)addedButton.visualEvents.Click.push(VisualScripting.createStep('message'));
+    VisualEditor.render();
+    const palettePane = document.getElementById('visualPalette');
+    const flowPane = document.querySelector('.vs-flow');
+    const scrollPanels = getComputedStyle(palettePane).overflowY === 'auto'
+      && getComputedStyle(flowPane).overflowY === 'auto'
+      && flowPane.scrollHeight > flowPane.clientHeight && flowPane.clientHeight > 0;
+    const pageFixed = getComputedStyle(document.body).overflow === 'hidden'
+      && document.documentElement.scrollHeight <= window.innerHeight + 1;
+    const headingsRemoved = getComputedStyle(document.querySelector('.workspace-heading')).display === 'none'
+      && getComputedStyle(document.querySelector('.workspace footer')).display === 'none';
+    document.getElementById('designTab').click();
+    const designRestored = !document.body.classList.contains('visual-active')
+      && getComputedStyle(document.querySelector('.workspace-heading')).display !== 'none';
+    const features = dialogOpened && eightPalettes && paletteChanged && darkChanged && accentChanged && accentReset
+      && visualOpened && visualAdded && formHandleSmall && controlHandleSmall && scrollPanels && pageFixed && headingsRemoved && designRestored;
     const diagnostics = {moved, centered, aligned, noPanInsideForm, unchanged,
       dialogOpened, eightPalettes, paletteChanged, darkChanged, accentChanged, accentReset, visualOpened, visualAdded,
+      formHandleSmall, controlHandleSmall, scrollPanels, pageFixed, headingsRemoved, designRestored,
+      pageHeight:document.documentElement.scrollHeight,windowHeight:window.innerHeight,
+      flowHeight:flowPane.clientHeight,flowScrollHeight:flowPane.scrollHeight,
       xOffset: centeredRect.x + centeredRect.width / 2 - viewRect.x - viewRect.width / 2,
       yOffset: centeredRect.y + centeredRect.height / 2 - viewRect.y - viewRect.height / 2,
       viewWidth:viewRect.width,clientWidth:viewport.clientWidth,scrollWidth:viewport.scrollWidth,
@@ -121,6 +142,7 @@ try {
   assert.equal(desktopResult, 'PASS', desktopResult || desktop.stderr);
   const desktopFeatures = [...desktop.stdout.matchAll(/<output id="featureResult">([^<]*)<\/output>/g)].at(-1)?.[1];
   assert.equal(desktopFeatures, 'PASS', desktopFeatures || desktop.stderr);
+  console.log('PASS: poignées réduites et défilement limité aux panneaux Visual scripting sur mobile et bureau');
   console.log('PASS: réglages, huit palettes et boucle visuelle imbriquée sur mobile et bureau');
   console.log('PASS: page statique chargée dans le navigateur, éditeur et code généré visibles');
   console.log('PASS: déplacement sur le fond, recentrage molette, formulaire préservé sur mobile et bureau');

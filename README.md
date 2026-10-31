@@ -2,7 +2,7 @@
 
 Éditeur visuel d’interfaces Windows Forms avec export PowerShell. Application statique en français, sans dépendance, sans compilation et sans serveur applicatif.
 
-**Version de l’application : 1.3.0** (31 octobre 2026). Cette numérotation est distincte du format de projet JSON (`version: 1`) et de la version PowerShell ciblée.
+**Version de l’application : 1.3.1** (31 octobre 2026). Cette numérotation est distincte du format de projet JSON (`version: 1`) et de la version PowerShell ciblée.
 
 ## Fonctionnalités
 
@@ -117,6 +117,12 @@ Vérifications : `node verify.cjs` teste le modèle, la géométrie, la validati
 Ouvrir `index.html` pour utiliser l’application. Facultatif : `node verify.cjs` exécute les vérifications du modèle et du générateur sans dépendance. Les nouveaux réglages sont enregistrés dans le projet JSON. En sélection multiple, les propriétés individuelles concernent le dernier élément sélectionné ; les outils Mise en page concernent toute la sélection.
 
 ## Historique des versions
+
+### 1.3.1 — 31 octobre 2026
+
+- Poignées de redimensionnement latérales réduites à 10 px ; poignée du coin réduite à 12 px.
+- Vue Visual scripting agrandie : suppression des bandeaux de titre superflus et du pied de page dans cet onglet.
+- Défilement limité à la liste des actions et à la zone centrale des blocs ; la page entière reste fixe. Vérification dans le navigateur sur mobile et bureau.
 
 ### 1.3.0 — 31 octobre 2026
 
