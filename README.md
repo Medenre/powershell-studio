@@ -2,7 +2,7 @@
 
 Éditeur visuel d’interfaces Windows Forms avec export PowerShell. Application statique en français, sans dépendance, sans compilation et sans serveur applicatif.
 
-**Version de l’application : 1.0.0** (31 octobre 2026). Cette numérotation est distincte du format de projet JSON (`version: 1`) et de la version PowerShell ciblée.
+**Version de l’application : 1.1.0** (31 octobre 2026). Cette numérotation est distincte du format de projet JSON (`version: 1`) et de la version PowerShell ciblée.
 
 ## Fonctionnalités
 
@@ -58,6 +58,8 @@ pwsh.exe -STA -File .\interface.ps1
 
 La cible sélectionnée est une version minimale (`#requires`). Les cibles 2.0 à 4.0 génèrent des constructeurs `New-Object`, les cibles 5.1 et 7 des constructeurs `::new()`. Le choix de version n’installe pas PowerShell et ne change pas la politique d’exécution Windows. Les scripts personnalisés des boutons ne sont pas convertis automatiquement.
 
+Les scripts exportés depuis la version 1.1.0 déclarent un contexte DPI adapté avant la création des contrôles pour éviter l’agrandissement flou de Windows sur un écran haute densité. Le script conserve la taille en pixels définie dans l’éditeur : il peut donc paraître plus petit, mais plus net. Réexporter le `.ps1` pour appliquer cette amélioration à un ancien projet. Sur un ancien Windows sans API DPI de fil, le script essaie la déclaration au niveau du processus. Si la fenêtre est déplacée vers un écran réglé à une autre échelle, un nouveau lancement sur cet écran peut être nécessaire pour conserver la netteté.
+
 Si le fichier téléchargé est bloqué par la politique RemoteSigned, et après vérification de son contenu, le débloquer avec `Unblock-File -LiteralPath .\interface.ps1` sur une version de PowerShell qui fournit cette commande, puis le relancer. La commande Unblock-File n’existe pas en PowerShell 2.0. Les politiques imposées par l’organisation restent applicables.
 
 ## Limites et données
@@ -103,6 +105,12 @@ Vérifications : `node verify.cjs` teste le modèle, la géométrie, la validati
 Ouvrir `index.html` pour utiliser l’application. Facultatif : `node verify.cjs` exécute les vérifications du modèle et du générateur sans dépendance. Les nouveaux réglages sont enregistrés dans le projet JSON. En sélection multiple, les propriétés individuelles concernent le dernier élément sélectionné ; les outils Mise en page concernent toute la sélection.
 
 ## Historique des versions
+
+### 1.1.0 — 31 octobre 2026
+
+- Export PowerShell : définition du contexte DPI avant Windows Forms pour obtenir un rendu net avec « Exécuter avec PowerShell » ; conservation du contexte précédent après fermeture du formulaire.
+- Repli compatible avec les anciens Windows et maintien des cinq cibles PowerShell.
+- Vérification native du contexte DPI, de la syntaxe et de l’ouverture des formulaires sur PowerShell 5.1.
 
 ### 1.0.0 — 31 octobre 2026
 

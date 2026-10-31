@@ -49,6 +49,10 @@ for (const version of versions) {
   assert.match(script, /UseSystemPasswordChar/);
   assert.match(script, /TabIndex/);
   assert.match(script, /BringToFront\(\)/);
+  assert.ok(script.indexOf('SetThreadDpiAwarenessContext') < script.indexOf('Add-Type -AssemblyName System.Windows.Forms'));
+  assert.match(script, /GetAwarenessFromDpiAwarenessContext/);
+  assert.match(script, /SetProcessDPIAware/);
+  assert.match(script, /if \(\$StudioPreviousDpiContext -ne \[IntPtr\]::Zero\)/);
   assert.equal(script.includes('::new('), Number(version) >= 5);
   assert.equal(script.includes('New-Object -TypeName'), Number(version) < 5);
   for (const type of Object.keys(core.types)) assert.ok(script.includes(`# ${type} —`), type);
@@ -88,7 +92,7 @@ if (process.argv.includes('--native')) {
       const code = core.generate(project);
       const marker = '\r\ntry {\r\n    [void]$MainForm.ShowDialog()';
       assert.ok(code.includes(marker));
-      const smoke = code.replace(marker, '\r\n$StudioSmokeTimer = New-Object -TypeName System.Windows.Forms.Timer\r\n$StudioSmokeTimer.Interval = 150\r\n$StudioSmokeTimer.Add_Tick({ $StudioSmokeTimer.Stop(); $MainForm.Close() })\r\n$StudioSmokeTimer.Start()' + marker);
+      const smoke = code.replace(marker, '\r\nif ([Environment]::OSVersion.Version.Build -ge 14393) {\r\n    $StudioSmokeDpi = [PowerShellStudio.DpiNative]::GetAwarenessFromDpiAwarenessContext([PowerShellStudio.DpiNative]::GetThreadDpiAwarenessContext())\r\n    if ($StudioSmokeDpi -eq 0) { throw "Formulaire encore flou : contexte DPI non déclaré" }\r\n}\r\n$StudioSmokeTimer = New-Object -TypeName System.Windows.Forms.Timer\r\n$StudioSmokeTimer.Interval = 150\r\n$StudioSmokeTimer.Add_Tick({ $StudioSmokeTimer.Stop(); $MainForm.Close() })\r\n$StudioSmokeTimer.Start()' + marker);
       fs.writeFileSync(path.join(temp, `interface-${version}.ps1`), '\ufeff' + smoke);
     }
     const result = spawnSync('powershell.exe', ['-NoProfile', '-STA', '-NonInteractive', '-File', path.join(__dirname, 'verify-native.ps1'), '-FixtureDir', temp], {
