@@ -4,6 +4,7 @@ const os = require('node:os');
 const path = require('node:path');
 const { spawnSync } = require('node:child_process');
 const core = require('./core.js');
+const visualCore = require('./visual-core.js');
 
 const versions = ['2.0', '3.0', '4.0', '5.1', '7.0'];
 const png = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIHWP4z8DwHwAFgAI/ScL/nwAAAABJRU5ErkJggg==';
@@ -82,7 +83,41 @@ invalid(p => p.controls[0].image = 'javascript:alert(1)');
 invalid(p => p.controls[0].action = 'x'.repeat(100001));
 invalid(p => p.form.text = 'x'.repeat(1001));
 
-console.log('PASS: 13 contrôles, 5 cibles, import ancien, limites, images et génération');
+const visualProject = core.fresh();
+visualProject.controls = [control('Button', 1), control('Label', 2)];
+const writeValue = visualCore.createStep('writeFile');
+writeValue.path = 'C:\\temp\\rapport.txt';
+writeValue.value = "$StudioVars['contenu']";
+writeValue.mode = 'expression';
+assert.match(visualCore.compileList(visualProject, [writeValue]).join('\n'), /WriteAllText\(\[string\]'C:\\temp\\rapport\.txt', \[string\]\(\$StudioVars\['contenu'\]\)/);
+const repeat = visualCore.createStep('repeat');
+repeat.count = '3';
+repeat.variable = 'i';
+const setText = visualCore.createStep('setText');
+setText.target = visualProject.controls[1].name;
+setText.mode = 'expression';
+setText.value = "$StudioVars['i']";
+repeat.body.push(setText);
+visualProject.controls[0].visualEvents = {Click:[repeat]};
+visualProject.controls[1].visualEvents = {Click:visualCore.definitions.map(def => visualCore.createStep(def.kind))};
+for (const version of versions) {
+  visualProject.targetVersion = version;
+  const script = core.generate(visualProject);
+  assert.match(script, /for \(\$StudioIndex_/);
+  assert.match(script, /\$StudioVars\['i'\] = \$StudioIndex_/);
+  assert.match(script, /\$ctrl_Label2\.Text = \[string\]/);
+  assert.match(script, /\$StudioVars = @\{\}/);
+}
+const visualSaved = JSON.parse(JSON.stringify(visualProject));
+core.validate(visualSaved);
+assert.equal(visualSaved.controls[0].visualEvents.Click[0].body[0].kind, 'setText');
+visualCore.renameTarget(visualSaved, 'ctrl_Label2', 'ctrl_Renamed');
+assert.equal(visualSaved.controls[0].visualEvents.Click[0].body[0].target, 'ctrl_Renamed');
+const invalidVisual = JSON.parse(JSON.stringify(visualProject));
+invalidVisual.controls[0].visualEvents.Click[0].kind = '__proto__';
+assert.throws(() => core.validate(invalidVisual));
+
+console.log('PASS: 13 contrôles, 5 cibles, anciens projets, images et blocs visuels');
 
 if (process.argv.includes('--native')) {
   const temp = fs.mkdtempSync(path.join(os.tmpdir(), 'psstudio-verify-'));
@@ -95,6 +130,11 @@ if (process.argv.includes('--native')) {
       const smoke = code.replace(marker, '\r\nif ([Environment]::OSVersion.Version.Build -ge 14393) {\r\n    $StudioSmokeDpi = [PowerShellStudio.DpiNative]::GetAwarenessFromDpiAwarenessContext([PowerShellStudio.DpiNative]::GetThreadDpiAwarenessContext())\r\n    if ($StudioSmokeDpi -eq 0) { throw "Formulaire encore flou : contexte DPI non déclaré" }\r\n}\r\n$StudioSmokeTimer = New-Object -TypeName System.Windows.Forms.Timer\r\n$StudioSmokeTimer.Interval = 150\r\n$StudioSmokeTimer.Add_Tick({ $StudioSmokeTimer.Stop(); $MainForm.Close() })\r\n$StudioSmokeTimer.Start()' + marker);
       fs.writeFileSync(path.join(temp, `interface-${version}.ps1`), '\ufeff' + smoke);
     }
+    visualProject.targetVersion = '2.0';
+    const visualScript = core.generate(visualProject);
+    const visualMarker = '\r\ntry {\r\n    [void]$MainForm.ShowDialog()';
+    const visualSmoke = visualScript.replace(visualMarker, '\r\n$MainForm.Add_Shown({\r\n    $ctrl_Button1.PerformClick()\r\n    if ($ctrl_Label2.Text -ne "2") { throw "La boucle visuelle n’a pas mis à jour le libellé" }\r\n    $MainForm.Close()\r\n})' + visualMarker);
+    fs.writeFileSync(path.join(temp, 'interface-visual-2.0.ps1'), '\ufeff' + visualSmoke);
     const result = spawnSync('powershell.exe', ['-NoProfile', '-STA', '-NonInteractive', '-File', path.join(__dirname, 'verify-native.ps1'), '-FixtureDir', temp], {
       encoding: 'utf8', timeout: 90000
     });

@@ -17,3 +17,10 @@ foreach ($version in $versions) {
         Write-Output 'Windows Forms exécuté : cible 7.0 sur pwsh.exe'
     }
 }
+$visualFile = Join-Path $FixtureDir 'interface-visual-2.0.ps1'
+$tokens = $null
+$errors = $null
+[void][System.Management.Automation.Language.Parser]::ParseFile($visualFile, [ref]$tokens, [ref]$errors)
+if ($errors.Count -gt 0) { throw ('Erreur de syntaxe des blocs visuels : ' + $errors[0].Message) }
+& $visualFile
+Write-Output 'Boucle visuelle exécutée au clic sur un bouton'

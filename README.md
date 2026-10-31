@@ -2,7 +2,7 @@
 
 Éditeur visuel d’interfaces Windows Forms avec export PowerShell. Application statique en français, sans dépendance, sans compilation et sans serveur applicatif.
 
-**Version de l’application : 1.2.0** (31 octobre 2026). Cette numérotation est distincte du format de projet JSON (`version: 1`) et de la version PowerShell ciblée.
+**Version de l’application : 1.3.0** (31 octobre 2026). Cette numérotation est distincte du format de projet JSON (`version: 1`) et de la version PowerShell ciblée.
 
 ## Fonctionnalités
 
@@ -10,7 +10,8 @@
 - Redimensionnement par les quatre côtés et le coin inférieur droit.
 - Zoom et dézoom avec recentrage automatique.
 - Dans le canevas, glisser au clic gauche sur le fond vide autour de la fenêtre pour déplacer la vue ; cliquer avec la molette pour recentrer l’interface.
-- Thème clair/sombre mémorisé.
+- Fenêtre **Paramètres** : huit palettes de couleurs en version claire ou sombre, accent personnalisé et mémorisation locale.
+- Onglet **Visual scripting** : événements des composants, blocs d’interface, variables, conditions, boucles, fichiers, actions et code PowerShell libre.
 - Choix de PowerShell 2.0, 3.0, 4.0, 5.1 ou 7 dans les propriétés de la fenêtre.
 - Régénération du code et téléchargement direct d’un `.ps1` UTF-8 avec BOM.
 - Enregistrement et ouverture des projets JSON, sauvegarde locale, annuler/rétablir.
@@ -25,11 +26,19 @@ python -m http.server 8000
 
 Puis ouvrir http://localhost:8000. Python est facultatif et ne sert qu’à cet aperçu local.
 
+## Paramètres et Visual scripting
+
+Le bouton **Paramètres** ouvre le choix de l’apparence claire ou sombre, des huit palettes et d’une couleur d’accent personnalisée. Ces préférences concernent l’éditeur et sont mémorisées dans ce navigateur ; les couleurs du formulaire exporté se règlent dans les propriétés des composants.
+
+Dans **Conception**, ajouter les composants. Ouvrir **Visual scripting**, choisir le composant et son événement (par exemple **Bouton → Click**), puis ajouter les blocs depuis la colonne de gauche. Les flèches changent leur ordre ; les boutons à l’intérieur d’une branche ajoutent des blocs imbriqués. Dans un champ « Valeur », choisir **Texte fixe** pour du texte échappé automatiquement ou **Expression PowerShell** pour une expression évaluée au moment de l’événement. Le bloc d’écriture de fichier propose ce choix séparément pour le chemin et le contenu. Les variables visuelles sont accessibles sous la forme `$StudioVars['nom']` dans les expressions et le code libre.
+
+Exemple : pour changer un libellé trois fois au clic d’un bouton, ajouter **Répéter N fois** avec `3`, puis **Changer un texte** dans sa branche **Faire** ; sélectionner le libellé et renseigner `$StudioVars['i']` en mode expression. Le compteur commence à zéro. La vue **Code PowerShell** montre le résultat complet avant l’export. Pour un bouton, le code manuel de la propriété **Événement · Click** reste pris en charge et s’exécute après les blocs visuels.
+
 ## Publication sur GitHub Pages
 
 1. Sur GitHub, créer un dépôt nommé `powershell-studio`. Un dépôt public convient à GitHub Pages avec GitHub Free : son code et le site seront accessibles publiquement.
 2. Décompresser cette archive sur le PC.
-3. Dans le dépôt, choisir **Add file → Upload files** et déposer le contenu du dossier : `index.html`, `core.js`, `app.js`, `style.css`, `responsive.css`, `README.md` et `.nojekyll`. Ne pas déposer le ZIP ni le dossier parent : `index.html` doit être à la racine du dépôt.
+3. Dans le dépôt, choisir **Add file → Upload files** et déposer le contenu du dossier, dont `index.html`, tous les fichiers `.js` et `.css` utilisés par la page, `README.md` et `.nojekyll`. Ne pas déposer le ZIP ni le dossier parent : `index.html` doit être à la racine du dépôt.
 4. Valider avec **Commit changes** sur la branche `main`.
 5. Aller dans **Settings → Pages → Build and deployment**.
 6. Choisir **Source : Deploy from a branch**, puis la branche **main** et le dossier **/(root)**, puis **Save**.
@@ -69,13 +78,15 @@ Si le fichier téléchargé est bloqué par la politique RemoteSigned, et après
 - Les panneaux et groupes sont visuels : les contrôles restent rattachés à la fenêtre principale.
 - L’éditeur ne lance pas de code PowerShell dans le navigateur.
 - La sauvegarde automatique utilise localStorage. Exporter régulièrement les projets avec **Enregistrer**.
-- Les scripts doivent être testés sur les versions Windows/PowerShell ciblées ; l’environnement de développement n’a pas exécuté Windows Forms.
+- Les scripts doivent être testés sur les versions Windows/PowerShell ciblées. Les tests natifs exécutent les cibles 2.0 à 5.1 sur PowerShell 5.1 ; ils ne remplacent pas un essai sur chaque moteur historique.
 
 ## Fichiers
 
 - `index.html` : structure de l’application et chargement des scripts statiques.
 - `style.css` : styles, thèmes et poignées.
 - `responsive.css` : adaptation aux écrans étroits et panneaux repliables.
+- `themes.css`, `settings.js` : palettes, réglages et mémorisation locale.
+- `visual.css`, `visual-ui.js`, `visual-core.js` : éditeur de blocs et génération des événements PowerShell.
 - `core.js` : modèle de projet, validation et génération PowerShell.
 - `app.js` : édition, sauvegarde, zoom et interactions de l’interface.
 - `.nojekyll` : publication statique GitHub Pages.
@@ -106,6 +117,14 @@ Vérifications : `node verify.cjs` teste le modèle, la géométrie, la validati
 Ouvrir `index.html` pour utiliser l’application. Facultatif : `node verify.cjs` exécute les vérifications du modèle et du générateur sans dépendance. Les nouveaux réglages sont enregistrés dans le projet JSON. En sélection multiple, les propriétés individuelles concernent le dernier élément sélectionné ; les outils Mise en page concernent toute la sélection.
 
 ## Historique des versions
+
+### 1.3.0 — 31 octobre 2026
+
+- Bouton Paramètres à la place du commutateur clair/sombre ; fenêtre avec huit palettes (violet, océan, émeraude, coucher de soleil, rose, ambre, turquoise et ardoise), mode clair/sombre et couleur d’accent personnalisée.
+- Nouvel onglet Visual scripting à côté du code PowerShell. Choisir la fenêtre ou un composant, puis un événement ; ajouter et ordonner des blocs, y compris dans les branches imbriquées.
+- Blocs pour messages, confirmation, texte et propriétés des composants, variables, conditions, boucles répétées, « pour chaque » et « tant que » avec limite, gestion d’erreur, attente, sortie, ouverture de fichier ou URL, lecture/écriture UTF-8, sélection de fichier et fermeture de la fenêtre. Un bloc de code libre couvre les besoins spécifiques.
+- Les blocs sont enregistrés dans le projet JSON et compilés pour les cinq cibles PowerShell. Le code manuel d’un bouton s’exécute après ses blocs visuels. Les références des blocs suivent le renommage d’un composant.
+- Tests dans le navigateur sur mobile et bureau ; test natif d’une boucle déclenchée par un clic, sur un script ciblant PowerShell 2.0.
 
 ### 1.2.0 — 31 octobre 2026
 

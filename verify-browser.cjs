@@ -26,7 +26,7 @@ try {
   assert.match(result.stdout, /id="showPalette"/);
   const source = fs.readFileSync(path.join(__dirname, 'index.html'), 'utf8');
   let probe = source;
-  for (const asset of ['style.css', 'responsive.css', 'core.js', 'app.js']) {
+  for (const asset of ['style.css', 'responsive.css', 'visual.css', 'themes.css', 'visual-core.js', 'core.js', 'app.js', 'visual-ui.js', 'settings.js']) {
     probe = probe.replace(`"${asset}"`, `"${pathToFileURL(path.join(__dirname, asset)).href}"`);
   }
   probe = probe.replace('</body>', `<script>
@@ -55,12 +55,47 @@ try {
     pointer(window, 'pointerup', {button: 0, clientX: 250, clientY: 250});
     const noPanInsideForm = panOffset.x === 0 && panOffset.y === 0;
     const unchanged = state.form.w === width && undoStack.length === historyCount;
+    document.getElementById('settings').click();
+    const dialogOpened = document.getElementById('settingsDialog').open;
+    const eightPalettes = document.querySelectorAll('[data-palette-choice]').length === 8;
+    document.querySelector('[data-palette-choice="ocean"]').click();
+    const paletteChanged = document.documentElement.dataset.palette === 'ocean';
+    const mode = document.getElementById('settingsMode');
+    mode.value = 'dark';
+    mode.dispatchEvent(new Event('change', {bubbles:true}));
+    const darkChanged = document.documentElement.dataset.theme === 'dark';
+    const accentPicker = document.getElementById('settingsAccent');
+    accentPicker.value = '#123456';
+    accentPicker.dispatchEvent(new Event('input', {bubbles:true}));
+    const accentChanged = document.documentElement.style.getPropertyValue('--accent') === '#123456'
+      && localStorage.getItem('ps-studio-accent') === '#123456';
+    document.getElementById('settingsReset').click();
+    const accentReset = !document.documentElement.style.getPropertyValue('--accent');
+    document.getElementById('closeSettings').click();
+    document.querySelector('.component[data-type="Button"]').click();
+    const addedButton = state.controls.at(-1);
+    document.getElementById('visualTab').click();
+    const visualOpened = !document.getElementById('visualView').hidden;
+    const visualTarget = document.getElementById('visualTarget');
+    visualTarget.value = addedButton.name;
+    visualTarget.dispatchEvent(new Event('change', {bubbles:true}));
+    document.querySelector('[data-add-kind="repeat"]').click();
+    const nestedKind = document.querySelector('.vs-add-nested .vs-kind-picker');
+    nestedKind.value = 'setText';
+    document.querySelector('[data-add-branch="body"]').click();
+    const visualAdded = addedButton.visualEvents.Click[0].kind === 'repeat'
+      && addedButton.visualEvents.Click[0].body[0].kind === 'setText'
+      && document.getElementById('visualBlocks').querySelectorAll('.vs-block').length === 2
+      && document.getElementById('code').textContent.includes('Add_Click');
+    const features = dialogOpened && eightPalettes && paletteChanged && darkChanged && accentChanged && accentReset && visualOpened && visualAdded;
     const diagnostics = {moved, centered, aligned, noPanInsideForm, unchanged,
+      dialogOpened, eightPalettes, paletteChanged, darkChanged, accentChanged, accentReset, visualOpened, visualAdded,
       xOffset: centeredRect.x + centeredRect.width / 2 - viewRect.x - viewRect.width / 2,
       yOffset: centeredRect.y + centeredRect.height / 2 - viewRect.y - viewRect.height / 2,
       viewWidth:viewRect.width,clientWidth:viewport.clientWidth,scrollWidth:viewport.scrollWidth,
       scrollLeft:viewport.scrollLeft,formLeft:centeredRect.x,formWidth:centeredRect.width};
     document.body.insertAdjacentHTML('beforeend', '<output id="gestureResult">' + (moved && centered && aligned && noPanInsideForm && unchanged ? 'PASS' : JSON.stringify(diagnostics)) + '</output>');
+    document.body.insertAdjacentHTML('beforeend', '<output id="featureResult">' + (features ? 'PASS' : JSON.stringify(diagnostics)) + '</output>');
     })();
   </script></body>`);
   const probeFile = path.join(profile, 'gesture.html');
@@ -73,6 +108,8 @@ try {
   assert.equal(gesture.status, 0, gesture.stderr);
   const gestureResult = [...gesture.stdout.matchAll(/<output id="gestureResult">([^<]*)<\/output>/g)].at(-1)?.[1];
   assert.equal(gestureResult, 'PASS', gestureResult || gesture.stderr);
+  const featureResult = [...gesture.stdout.matchAll(/<output id="featureResult">([^<]*)<\/output>/g)].at(-1)?.[1];
+  assert.equal(featureResult, 'PASS', featureResult || gesture.stderr);
   const desktop = spawnSync(browser, [
     '--headless=new', '--disable-gpu', '--no-first-run', '--no-default-browser-check',
     '--window-size=1500,1000', `--user-data-dir=${path.join(profile, 'desktop-profile')}`,
@@ -82,6 +119,9 @@ try {
   assert.equal(desktop.status, 0, desktop.stderr);
   const desktopResult = [...desktop.stdout.matchAll(/<output id="gestureResult">([^<]*)<\/output>/g)].at(-1)?.[1];
   assert.equal(desktopResult, 'PASS', desktopResult || desktop.stderr);
+  const desktopFeatures = [...desktop.stdout.matchAll(/<output id="featureResult">([^<]*)<\/output>/g)].at(-1)?.[1];
+  assert.equal(desktopFeatures, 'PASS', desktopFeatures || desktop.stderr);
+  console.log('PASS: réglages, huit palettes et boucle visuelle imbriquée sur mobile et bureau');
   console.log('PASS: page statique chargée dans le navigateur, éditeur et code généré visibles');
   console.log('PASS: déplacement sur le fond, recentrage molette, formulaire préservé sur mobile et bureau');
 } finally {
