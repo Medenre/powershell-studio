@@ -26,7 +26,7 @@ try {
   assert.match(result.stdout, /id="showPalette"/);
   const source = fs.readFileSync(path.join(__dirname, 'index.html'), 'utf8');
   let probe = source;
-  for (const asset of ['style.css', 'responsive.css', 'visual.css', 'themes.css', 'syntax.css', 'visual-core.js', 'core.js', 'syntax.js', 'app.js', 'visual-ui.js', 'settings.js', 'i18n.js']) {
+  for (const asset of ['style.css', 'responsive.css', 'visual.css', 'themes.css', 'syntax.css', 'features.css', 'visual-core.js', 'core.js', 'syntax.js', 'storage.js', 'diagnostics.js', 'app.js', 'visual-ui.js', 'settings.js', 'i18n.js']) {
     probe = probe.replace(`"${asset}"`, `"${pathToFileURL(path.join(__dirname, asset)).href}"`);
   }
   probe = probe.replace('</body>', `<script>
@@ -128,8 +128,28 @@ try {
     StudioI18n.setLanguage('fr');
     document.querySelector('.component[data-type="CheckBox"]').click();
     const addedCheckBox = state.controls.at(-1);
+    document.querySelector('.component[data-type="GroupBox"]').click();
+    const addedGroup = state.controls.at(-1);
+    document.querySelector('#layers [data-layer="' + addedButton.name + '"]').click();
+    const parentSelect = document.querySelector('#inspector [data-key="parent"]');
+    parentSelect.value = addedGroup.name;
+    parentSelect.dispatchEvent(new Event('change', {bubbles:true}));
+    const dollar=String.fromCharCode(36);
+    const childAttached = addedButton.parent === addedGroup.name
+      && generate().includes(dollar + addedGroup.name + '.Controls.Add(' + dollar + addedButton.name + ')');
+    document.querySelector('#layers [data-layer="' + addedGroup.name + '"]').click();
+    const childBeforeMove = {x:addedButton.x,y:addedButton.y};
+    moveSelection(8,8);
+    const childFollowsParent = addedButton.x === childBeforeMove.x + 8 && addedButton.y === childBeforeMove.y + 8;
+    render();
     document.getElementById('visualTab').click();
     const visualOpened = !document.getElementById('visualView').hidden;
+    const search = document.getElementById('visualSearch');
+    search.value='Répéter';search.dispatchEvent(new Event('input',{bubbles:true}));
+    const paletteSearch = document.querySelectorAll('#visualPalette [data-add-kind]').length === 1
+      && document.querySelector('#visualPalette [data-add-kind="repeat"]');
+    document.getElementById('visualSearch').value='';
+    document.getElementById('visualSearch').dispatchEvent(new Event('input',{bubbles:true}));
     const visualFrameRemoved = ['borderLeftWidth','borderRightWidth','borderBottomWidth'].every(key=>getComputedStyle(document.getElementById('visualView'))[key]==='0px')
       && getComputedStyle(document.getElementById('visualPalette')).borderRightWidth === '0px'
       && getComputedStyle(document.querySelector('.vs-preview')).borderLeftWidth === '0px';
@@ -156,6 +176,16 @@ try {
       && addedButton.visualEvents.Click[0].body[0].kind === 'setText'
       && document.getElementById('visualBlocks').querySelectorAll('.vs-block').length === 2
       && document.getElementById('code').textContent.includes('Add_Click');
+    const firstVisualCard=document.querySelector('#visualBlocks [data-step-id]');
+    firstVisualCard.querySelector('[data-collapse]').click();
+    const blockCollapsed=firstVisualCard.classList.contains('is-collapsed')
+      && getComputedStyle(firstVisualCard.querySelector('.vs-branch')).display === 'none';
+    firstVisualCard.querySelector('[data-collapse]').click();
+    const flowSearch=document.getElementById('visualFind');
+    flowSearch.value='Répéter';flowSearch.dispatchEvent(new Event('input',{bubbles:true}));
+    const existingBlockFound=document.getElementById('visualFindCount').textContent==='1/1'
+      && !!document.querySelector('#visualBlocks .vs-search-match');
+    flowSearch.value='';flowSearch.dispatchEvent(new Event('input',{bubbles:true}));
     document.querySelector('[data-add-kind="if"]').click();
     const conditionBlock = addedButton.visualEvents.Click.at(-1);
     const conditionElement = () => document.querySelector('[data-step-id="' + conditionBlock.id + '"]');
@@ -211,6 +241,25 @@ try {
     const whileBlock = addedButton.visualEvents.Click.at(-1);
     const whileUsesLists = whileBlock.conditionMode === 'builder'
       && !!document.querySelector('[data-step-id="' + whileBlock.id + '"] .vs-condition-row');
+    const brokenStep=VisualScripting.createStep('setText');brokenStep.target='ctrl_Missing';
+    addedButton.visualEvents.Click.push(brokenStep);
+    showDiagnostics();
+    const diagnosticsBlockExport=document.getElementById('diagnosticsDialog').open
+      && document.getElementById('diagnosticsExport').disabled
+      && document.querySelector('#diagnosticsList .diagnostic-item.error');
+    document.getElementById('diagnosticsClose').click();
+    StudioI18n.setLanguage('en');showDiagnostics();
+    const englishDiagnostics=document.querySelector('#diagnosticsList .diagnostic-item.error strong')?.textContent.includes('no longer exists')
+      && document.querySelector('#diagnosticsDialog h2').textContent==='Project check';
+    document.querySelector('#diagnosticsList .diagnostic-item.error').click();
+    const issueNavigates=document.querySelector('#visualBlocks .vs-issue-focus[data-step-id="' + brokenStep.id + '"]')
+      && document.getElementById('visualTarget').value===addedButton.name;
+    StudioI18n.setLanguage('fr');
+    addedButton.visualEvents.Click.pop();VisualEditor.render();
+    showDiagnostics(true);
+    const warningsCanExport=document.getElementById('diagnosticsDialog').open
+      && !document.getElementById('diagnosticsExport').disabled;
+    document.getElementById('diagnosticsClose').click();
     for(let i=0;i<16;i++)addedButton.visualEvents.Click.push(VisualScripting.createStep('message'));
     VisualEditor.render();
     const palettePane = document.getElementById('visualPalette');
@@ -225,11 +274,20 @@ try {
     document.getElementById('designTab').click();
     const designRestored = !document.body.classList.contains('visual-active')
       && getComputedStyle(document.querySelector('.workspace-heading')).display !== 'none';
+    selectControl(addedGroup.name);duplicate();
+    const duplicatedGroup=state.controls.find(item=>item.name===addedGroup.name+'_2');
+    const duplicatedChild=state.controls.find(item=>item.name===addedButton.name+'_2');
+    const subtreeDuplicated=duplicatedGroup && duplicatedChild && duplicatedChild.parent===duplicatedGroup.name
+      && duplicatedChild.visualEvents.Click[0].id!==addedButton.visualEvents.Click[0].id
+      && duplicatedChild.visualEvents.Click.find(step=>step.kind==='if').conditions[0].leftTarget===duplicatedChild.name;
+    selectControl(addedGroup.name);remove();
+    const childReparented=addedButton.parent==='MainForm' && !state.controls.includes(addedGroup);
     const features = tabsCentered && tabsClear && tipRemoved && dialogOpened && flagsAvailable && englishSelected && frenchRestored && englishGuide
       && eightPalettes && paletteChanged && darkChanged && accentChanged && accentReset
       && visualOpened && visualAdded && conditionConfigured && englishVisualComplete && projectTextPreserved && advancedAvailable && whileUsesLists
       && visualFrameRemoved && allTooltips && tooltipOpens && englishTooltip && targetTooltip && targetHelpOpens && englishTargetTooltip
       && formHandleSmall && controlHandleSmall && scrollPanels && pageFixed && headingsRemoved && designRestored
+      && childAttached && childFollowsParent && subtreeDuplicated && childReparented && paletteSearch && blockCollapsed && existingBlockFound && diagnosticsBlockExport && englishDiagnostics && issueNavigates && warningsCanExport
       && codeUnchanged && codeTokens && lightSyntax && darkSyntax && codeEscaped && layoutIcons && layoutTranslated;
     const diagnostics = {moved, centered, aligned, noPanInsideForm, unchanged,
       tabsCentered, tabsClear, navLeftRight:document.querySelector('nav>div:first-child').getBoundingClientRect().right,
@@ -238,6 +296,7 @@ try {
       eightPalettes, paletteChanged, darkChanged, accentChanged, accentReset, visualOpened, visualAdded, conditionConfigured, englishVisualComplete, projectTextPreserved, visualFrenchFragments, advancedAvailable, whileUsesLists,
       visualFrameRemoved, allTooltips, tooltipOpens, englishTooltip, targetTooltip, targetHelpOpens, englishTargetTooltip,
       formHandleSmall, controlHandleSmall, scrollPanels, pageFixed, headingsRemoved, designRestored,
+      childAttached, childFollowsParent, subtreeDuplicated:!!subtreeDuplicated, childReparented, paletteSearch:!!paletteSearch, blockCollapsed, existingBlockFound, diagnosticsBlockExport:!!diagnosticsBlockExport, englishDiagnostics, issueNavigates:!!issueNavigates, warningsCanExport,
       codeUnchanged, codeTokens, lightSyntax, darkSyntax, codeEscaped, layoutIcons, layoutTranslated,
       pageHeight:document.documentElement.scrollHeight,windowHeight:window.innerHeight,
       flowHeight:flowPane.clientHeight,flowScrollHeight:flowPane.scrollHeight,
@@ -251,6 +310,10 @@ try {
   </script></body>`);
   const probeFile = path.join(profile, 'gesture.html');
   fs.writeFileSync(probeFile, probe);
+  const scriptFile=path.join(profile,'probe.js');
+  fs.writeFileSync(scriptFile,probe.slice(probe.indexOf('<script>\n    (() => {')+8,probe.lastIndexOf('</script>')));
+  const syntaxCheck=spawnSync(process.execPath,['--check',scriptFile],{encoding:'utf8'});
+  assert.equal(syntaxCheck.status,0,syntaxCheck.stderr);
   const gesture = spawnSync(browser, [
     '--headless=new', '--disable-gpu', '--no-first-run', '--no-default-browser-check',
     `--user-data-dir=${path.join(profile, 'gesture-profile')}`, '--dump-dom', pathToFileURL(probeFile).href
@@ -290,6 +353,9 @@ try {
   assert.equal(mobile.status, 0, mobile.stderr);
   const mobileFeatures = [...mobile.stdout.matchAll(/<output id="featureResult">([^<]*)<\/output>/g)].at(-1)?.[1];
   assert.equal(mobileFeatures, 'PASS', mobileFeatures || mobile.stderr);
+  console.log('PASS: conteneurs natifs dans l’export, déplacement, duplication et rattachement des enfants');
+  console.log('PASS: diagnostics avant export, navigation vers les erreurs, avertissements et français/anglais');
+  console.log('PASS: recherche dans les blocs, repli des branches et onglets centrés sur mobile et bureau');
   console.log('PASS: onglets centrés sans chevauchement, cadre retiré, aides des blocs et français/anglais');
   console.log('PASS: conditions sans code, listes de composants, mode avancé et boucle Tant que sur mobile et bureau');
   console.log('PASS: poignées réduites et défilement limité aux panneaux Visual scripting sur mobile et bureau');

@@ -38,8 +38,8 @@
     NumericUpDown:['Champ numérique avec flèches pour augmenter ou diminuer la valeur.','Numeric field with arrows to increase or decrease its value.'],
     DateTimePicker:['Champ permettant de choisir une date.','Field for choosing a date.'],
     ProgressBar:['Barre qui affiche une progression de 0 à 100.','Bar showing progress from 0 to 100.'],
-    GroupBox:['Cadre visuel pour regrouper des éléments dans l’éditeur.','Visual frame for grouping items in the editor.'],
-    Panel:['Zone visuelle pour organiser l’interface.','Visual area for organizing the interface.'],
+    GroupBox:['Cadre qui contient de vrais composants enfants dans le formulaire Windows.','Group box that contains real child controls in the Windows form.'],
+    Panel:['Zone qui contient de vrais composants enfants dans le formulaire Windows.','Panel that contains real child controls in the Windows form.'],
     PictureBox:['Zone qui affiche une image.','Area that displays an image.']
   };
   const description=kind=>help[kind]?.[document.documentElement.lang==='en'?1:0]||'';
@@ -47,6 +47,10 @@
   const targets=()=>[state.form,...state.controls];
   let selectedTarget='MainForm';
   let selectedEvent='Load';
+  const collapsed=new Set();
+  let paletteQuery='';
+  let findIndex=-1;
+  let renderedProject=state;
   const owner=()=>targets().find(item=>item.name===selectedTarget)||state.form;
   const eventList=()=>{const item=owner();item.visualEvents ||= {};item.visualEvents[selectedEvent] ||= [];return item.visualEvents[selectedEvent];};
   function findLocation(list,id){
@@ -132,10 +136,11 @@
       if(!def)return '';
       const branches=(def.branches||[]).map(branch=>`<div class="vs-branch"><div class="vs-branch-title">${escapeHtml(VisualScripting.branchLabel[branch])}</div>${renderList(step[branch],depth+1)}<div class="vs-add-nested">${kindPicker()}<button data-add-branch="${branch}" data-parent="${step.id}">+ Ajouter</button></div></div>`).join('');
       const fields=['if','while'].includes(step.kind)?conditionEditorHtml(step):`<div class="vs-fields">${def.fields.map(field=>fieldHtml(step,field)).join('')}</div>`;
-      return `<article class="vs-block vs-${escapeHtml(def.group.toLowerCase())}" data-step-id="${escapeHtml(step.id)}"><div class="vs-block-head"><strong>${escapeHtml(def.label)}</strong><div><button type="button" data-help-kind="${step.kind}" title="${escapeHtml(description(step.kind))}" aria-label="${escapeHtml(description(step.kind))}">ⓘ</button><button data-move="up" title="Monter">↑</button><button data-move="down" title="Descendre">↓</button><button data-delete title="Supprimer">×</button></div></div>${fields}${branches}</article>`;
+      return `<article class="vs-block vs-${escapeHtml(def.group.toLowerCase())} ${collapsed.has(step.id)?'is-collapsed':''}" data-step-id="${escapeHtml(step.id)}"><div class="vs-block-head"><strong>${escapeHtml(def.label)}</strong><div><button type="button" data-collapse title="Replier ou déplier" aria-label="Replier ou déplier" aria-expanded="${!collapsed.has(step.id)}">${collapsed.has(step.id)?'▸':'▾'}</button><button type="button" data-help-kind="${step.kind}" title="${escapeHtml(description(step.kind))}" aria-label="${escapeHtml(description(step.kind))}">ⓘ</button><button data-move="up" title="Monter">↑</button><button data-move="down" title="Descendre">↓</button><button data-delete title="Supprimer">×</button></div></div>${fields}${branches}</article>`;
     }).join('');
   }
   function render(){
+    if(renderedProject!==state){collapsed.clear();renderedProject=state;}
     if(!targets().some(item=>item.name===selectedTarget))selectedTarget='MainForm';
     const allowed=VisualScripting.eventsFor(owner().type||'Form');
     if(!allowed.includes(selectedEvent))selectedEvent=allowed[0];
@@ -162,15 +167,40 @@
   $('visualTargetHelp').onclick=()=>toast(componentDescription(owner()));
   $('visualEvent').onchange=e=>{selectedEvent=e.target.value;render();};
   function renderPalette(){
-    $('visualPalette').innerHTML=[...new Set(VisualScripting.definitions.map(def=>def.group))].map(group=>`<div class="vs-palette-group"><h3>${escapeHtml(group)}</h3>${VisualScripting.definitions.filter(def=>def.group===group).map(def=>`<div class="vs-palette-item"><button data-add-kind="${def.kind}" title="${escapeHtml(description(def.kind))}">+ ${escapeHtml(def.label)}</button><button type="button" data-help-kind="${def.kind}" class="vs-help-button" title="${escapeHtml(description(def.kind))}" aria-label="${escapeHtml(description(def.kind))}">ⓘ</button></div>`).join('')}</div>`).join('');
+    const filtered=VisualScripting.definitions.filter(def=>(def.group+' '+def.label+' '+description(def.kind)).toLocaleLowerCase().includes(paletteQuery.toLocaleLowerCase()));
+    $('visualPalette').innerHTML=`<label class="vs-palette-search"><span>Rechercher un bloc</span><input id="visualSearch" type="search" value="${escapeHtml(paletteQuery)}" placeholder="Nom ou fonction" aria-label="Rechercher un bloc"></label>`+
+      ([...new Set(filtered.map(def=>def.group))].map(group=>`<div class="vs-palette-group"><h3>${escapeHtml(group)}</h3>${filtered.filter(def=>def.group===group).map(def=>`<div class="vs-palette-item"><button data-add-kind="${def.kind}" title="${escapeHtml(description(def.kind))}">+ ${escapeHtml(def.label)}</button><button type="button" data-help-kind="${def.kind}" class="vs-help-button" title="${escapeHtml(description(def.kind))}" aria-label="${escapeHtml(description(def.kind))}">ⓘ</button></div>`).join('')}</div>`).join('')||'<p class="vs-empty">Aucun bloc trouvé.</p>');
   }
   renderPalette();
+  function findNext(){
+    const query=$('visualFind').value.trim().toLocaleLowerCase();
+    $('visualBlocks').querySelectorAll('.vs-search-match').forEach(card=>card.classList.remove('vs-search-match'));
+    if(!query){$('visualFindCount').textContent='';findIndex=-1;return;}
+    if(collapsed.size){collapsed.clear();render();}
+    const matches=[...$('visualBlocks').querySelectorAll('[data-step-id]')].filter(card=>{
+      const title=card.querySelector(':scope > .vs-block-head strong')?.textContent||'';
+      const values=[...card.querySelectorAll(':scope > .vs-fields input,:scope > .vs-fields textarea,:scope > .vs-condition-editor input,:scope > .vs-condition-editor textarea')].map(field=>field.value).join(' ');
+      return (title+' '+values).toLocaleLowerCase().includes(query);
+    });
+    if(!matches.length){$('visualFindCount').textContent='0';findIndex=-1;return;}
+    findIndex=(findIndex+1)%matches.length;
+    matches[findIndex].classList.add('vs-search-match');
+    matches[findIndex].scrollIntoView({block:'center',behavior:'smooth'});
+    $('visualFindCount').textContent=`${findIndex+1}/${matches.length}`;
+  }
+  $('visualFind').oninput=()=>{findIndex=-1;findNext();};
+  $('visualFindNext').onclick=findNext;
+  $('visualCollapseAll').onclick=()=>{for(const card of $('visualBlocks').querySelectorAll('[data-step-id]'))collapsed.add(card.dataset.stepId);render();};
+  $('visualExpandAll').onclick=()=>{collapsed.clear();render();};
+  $('visualPalette').oninput=e=>{if(e.target.id!=='visualSearch')return;paletteQuery=e.target.value;const position=e.target.selectionStart;renderPalette();$('visualSearch').focus();$('visualSearch').setSelectionRange(position,position);};
   $('visualPalette').onclick=e=>{
     const helpButton=e.target.closest('[data-help-kind]');if(helpButton){toast(description(helpButton.dataset.helpKind));return;}
     const button=e.target.closest('[data-add-kind]');if(!button)return;
     checkpoint();eventList().push(VisualScripting.createStep(button.dataset.addKind));commit();
   };
   $('visualBlocks').onclick=e=>{
+    const collapse=e.target.closest('[data-collapse]');
+    if(collapse){const card=collapse.closest('[data-step-id]'),id=card.dataset.stepId;if(collapsed.has(id))collapsed.delete(id);else collapsed.add(id);card.classList.toggle('is-collapsed',collapsed.has(id));collapse.setAttribute('aria-expanded',String(!collapsed.has(id)));collapse.textContent=collapsed.has(id)?'▸':'▾';return;}
     const helpButton=e.target.closest('[data-help-kind]');if(helpButton){toast(description(helpButton.dataset.helpKind));return;}
     const addCondition=e.target.closest('[data-condition-add]');
     if(addCondition){
@@ -250,5 +280,10 @@
     commit();
   };
   $('visualBlocks').addEventListener('focusout',finishTextEdit);
-  window.VisualEditor={render,renderPalette,updatePreview};
+  function focusIssue(issue){
+    tab('visual');selectedTarget=issue.owner;selectedEvent=issue.event;collapsed.clear();render();
+    const card=[...$('visualBlocks').querySelectorAll('[data-step-id]')].find(item=>item.dataset.stepId===issue.stepId);
+    if(card){card.classList.add('vs-issue-focus');card.scrollIntoView({block:'center',behavior:'smooth'});card.querySelector('input,select,textarea,button')?.focus({preventScroll:true});}
+  }
+  window.VisualEditor={render,renderPalette,updatePreview,focusIssue};
 })();

@@ -24,7 +24,7 @@
     'Éléments (un par ligne)':'Items (one per line)','Valeur (0–100)':'Value (0–100)','ÉVÉNEMENT · CLICK':'CLICK EVENT',
     'Code PowerShell exécuté au clic':'PowerShell code run on click','Élément visuel : les contrôles restent rattachés à la fenêtre.':'Visual item: controls remain attached to the main window.',
     'Dupliquer':'Duplicate','Supprimer':'Delete','Police':'Font','Gras':'Bold','Italique':'Italic','Souligné':'Underline','Non':'No','Oui':'Yes',
-    'Opaque':'Opaque','Transparent':'Transparent','Transparent : reprend le fond de la fenêtre, sans révéler les autres composants.':'Transparent: uses the window background without revealing other components.',
+    'Opaque':'Opaque','Transparent':'Transparent','Transparent : reprend le fond du conteneur parent, sans révéler les autres composants.':'Transparent: uses the parent container background without revealing other controls.',
     'La fenêtre conserve un fond opaque.':'The window keeps an opaque background.','Ce contrôle Windows Forms conserve un fond opaque.':'This Windows Forms control keeps an opaque background.',
     'Premier plan en haut · Glisser pour réordonner':'Front layer at top · Drag to reorder','Alt + ↑ / ↓ : déplacer le calque':'Alt + ↑ / ↓: move layer',
     'Glisser pour changer le plan':'Drag to change layer','POWERSHELL':'POWERSHELL','Version cible':'Target version','Commande de lancement':'Launch command',
@@ -73,9 +73,20 @@
     'Sans titre':'Untitled','Nom unique requis : ctrl_ suivi de lettres, chiffres ou _':'Unique name required: ctrl_ followed by letters, digits, or _',
     'Fichier trop volumineux':'File too large','Import impossible :':'Import failed:','Projet non reconnu':'Unrecognized project','Fenêtre invalide':'Invalid window','Composant invalide':'Invalid component',
     'Écartez les éléments avant de les répartir sans chevauchement.':'Move items apart before distributing them without overlap.',
+    'Sélectionnez des composants du même conteneur pour les aligner.':'Select controls in the same container to align them.',
     'Image trop volumineuse : 5 Mo maximum.':'Image too large: 5 MB maximum.','Utilisez une image PNG, JPEG ou WebP.':'Use a PNG, JPEG, or WebP image.',
     'Image trop complexe':'Image too complex','Impossible de lire cette image.':'Could not read this image.',
-    'Créer une nouvelle interface ? Pensez à télécharger votre projet actuel.':'Create a new interface? Remember to download your current project.'
+    'Créer une nouvelle interface ? Pensez à télécharger votre projet actuel.':'Create a new interface? Remember to download your current project.',
+    'Vérifier':'Check','Vérifier le projet avant export':'Check the project before export','Vérification du projet':'Project check',
+    'Tout replier':'Collapse all','Tout déplier':'Expand all','Replier ou déplier':'Collapse or expand',
+    'Rechercher un bloc':'Search blocks','Nom ou fonction':'Name or function','Aucun bloc trouvé.':'No matching block.',
+    'Chercher dans les blocs':'Find in blocks','Suivant':'Next',
+    'Conteneur parent':'Parent container','Ce conteneur peut recevoir des composants. Déposez-les dedans ou choisissez-le comme parent.':'This container can hold controls. Drop them inside or select it as their parent.',
+    'Aucun problème détecté dans les blocs visuels. Les expressions et le code PowerShell libres nécessitent toujours un essai sous Windows.':'No issue found in visual blocks. Custom expressions and PowerShell code still need testing on Windows.',
+    'Corrigez les erreurs avant export':'Fix errors before export','Exporter malgré les avertissements':'Export despite warnings',
+    'Sauvegardé dans ce navigateur (projet volumineux)':'Saved in this browser (large project)',
+    'Sauvegarde impossible — téléchargez le projet avec Enregistrer':'Save failed — download the project with Save',
+    'Sauvegarde précédente illisible — ouvrez un projet ou créez-en un nouveau':'Previous save cannot be read — open a project or create a new one'
   };
   const enToFr=Object.fromEntries(Object.entries(frToEn).map(([fr,en])=>[en,fr]));
   let language='fr';
@@ -169,6 +180,6 @@
   const helpButton=document.getElementById('help');
   helpButton.addEventListener('click',()=>{
     if(language!=='en')return;
-    document.getElementById('dialogBody').innerHTML=`<h2>Build your interface in a few steps.</h2><p>1. Drag or click a component in the palette.<br>2. Move it and resize it with the side and corner handles.<br>3. Select the window to resize the form.<br>4. Edit properties on the right.<br>5. Drag the empty canvas to pan, or middle click to recenter.</p><p>Use <b>Visual scripting</b> to add actions and conditions without writing code. Select a component and event, then add blocks from the left panel. The info buttons explain each block.</p><p>Save downloads a JSON project you can reopen here. Export .ps1 downloads the Windows Forms script for the selected PowerShell version. Editor colors and language do not change your exported form.</p>`;
+    document.getElementById('dialogBody').innerHTML=`<h2>Build your interface in a few steps.</h2><p>1. Drag or click a component in the palette.<br>2. Move it and resize it with the side and corner handles.<br>3. Select the window to resize the form.<br>4. Edit properties on the right.<br>5. Drag the empty canvas to pan, or middle click to recenter.</p><p>Group boxes and panels hold child controls. Drop a control inside or choose its parent in Properties. Use <b>Visual scripting</b> to add actions and conditions without writing code. Select a component and event, then add blocks from the left panel. The info buttons explain each block.</p><p>Check reports visual block errors before export. Save downloads a JSON project you can reopen here. Export .ps1 downloads the Windows Forms script for the selected PowerShell version. Editor colors and language do not change your exported form.</p>`;
   });
 })();

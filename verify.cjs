@@ -6,6 +6,7 @@ const { spawnSync } = require('node:child_process');
 const core = require('./core.js');
 const visualCore = require('./visual-core.js');
 const syntax = require('./syntax.js');
+const diagnostics = require('./diagnostics.js');
 
 const syntaxSample = '# commentaire\r\n$nom = "valeur # texte"\r\nif ($true) { Write-Host $nom }';
 const syntaxTokens = syntax.tokenize(syntaxSample);
@@ -192,7 +193,40 @@ partialNumber.controls[0].visualEvents.Click[0].body[0].conditions[0].rightValue
 core.validate(partialNumber);
 assert.equal(partialNumber.controls[0].visualEvents.Click[0].body[0].conditions[0].rightValue, '0');
 
+const containerProject=core.fresh();
+const nestedButton=control('Button',1),group=control('GroupBox',2),panel=control('Panel',3);
+panel.x=20;panel.y=10;panel.w=320;panel.h=220;
+group.x=40;group.y=30;group.w=260;group.h=140;
+group.parent=panel.name;
+nestedButton.x=65;nestedButton.y=65;nestedButton.parent=group.name;
+containerProject.controls=[nestedButton,group,panel];
+core.validate(containerProject);
+const containerScript=core.generate(containerProject);
+assert.match(containerScript,/\$ctrl_Button1\.Location = .*\(25, 35\)/);
+assert.match(containerScript,/\$ctrl_GroupBox2\.Controls\.Add\(\$ctrl_Button1\)/);
+assert.match(containerScript,/\$ctrl_Panel3\.Controls\.Add\(\$ctrl_GroupBox2\)/);
+assert.ok(containerScript.indexOf('$ctrl_GroupBox2 = ')<containerScript.indexOf('$ctrl_GroupBox2.Controls.Add($ctrl_Button1)'));
+const oldContainerProject=JSON.parse(JSON.stringify(containerProject));
+delete oldContainerProject.controls[0].parent;
+core.validate(oldContainerProject);
+assert.equal(oldContainerProject.controls[0].parent,'MainForm');
+const cyclicProject=JSON.parse(JSON.stringify(containerProject));
+cyclicProject.controls[0].type='Panel';cyclicProject.controls[1].parent=cyclicProject.controls[0].name;
+assert.throws(()=>core.validate(cyclicProject),/Cycle/);
+
+const problemProject=core.fresh();
+const problemButton=control('Button',1);
+const missingTarget=visualCore.createStep('setText');missingTarget.target='ctrl_Gone';
+const conditionWithoutVariable=visualCore.createStep('if');
+problemButton.visualEvents={Click:[missingTarget,conditionWithoutVariable]};
+problemProject.controls=[problemButton];
+const problems=diagnostics.inspect(problemProject);
+assert.ok(problems.some(item=>item.severity==='error'&&item.stepId===missingTarget.id));
+assert.ok(problems.some(item=>item.severity==='warning'&&item.stepId===conditionWithoutVariable.id));
+assert.deepEqual(diagnostics.inspect(core.fresh()),[]);
+
 console.log('PASS: 13 contrôles, 5 cibles, anciens projets, images et blocs visuels');
+console.log('PASS: conteneurs imbriqués, projets anciens et diagnostic des blocs');
 
 if (process.argv.includes('--native')) {
   const temp = fs.mkdtempSync(path.join(os.tmpdir(), 'psstudio-verify-'));
@@ -210,6 +244,10 @@ if (process.argv.includes('--native')) {
     const visualMarker = '\r\ntry {\r\n    [void]$MainForm.ShowDialog()';
     const visualSmoke = visualScript.replace(visualMarker, '\r\n$MainForm.Add_Shown({\r\n    $ctrl_Button1.PerformClick()\r\n    if ($ctrl_Label2.Text -ne "OK") { throw "Les conditions visuelles n’ont pas mis à jour le libellé" }\r\n    $MainForm.Close()\r\n})' + visualMarker);
     fs.writeFileSync(path.join(temp, 'interface-visual-2.0.ps1'), '\ufeff' + visualSmoke);
+    containerProject.targetVersion='2.0';
+    const nestedScript=core.generate(containerProject);
+    const nestedSmoke=nestedScript.replace(visualMarker,'\r\n$MainForm.Add_Shown({\r\n    if ($ctrl_GroupBox2.Parent -ne $ctrl_Panel3) { throw "Le groupe n’est pas dans son panneau" }\r\n    if ($ctrl_Button1.Parent -ne $ctrl_GroupBox2) { throw "Le bouton n’est pas dans son groupe" }\r\n    if ($ctrl_Button1.Location.X -ne 25 -or $ctrl_GroupBox2.Location.X -ne 20) { throw "Position relative incorrecte" }\r\n    $MainForm.Close()\r\n})'+visualMarker);
+    fs.writeFileSync(path.join(temp,'interface-container-2.0.ps1'),'\ufeff'+nestedSmoke);
     const result = spawnSync('powershell.exe', ['-NoProfile', '-STA', '-NonInteractive', '-File', path.join(__dirname, 'verify-native.ps1'), '-FixtureDir', temp], {
       encoding: 'utf8', timeout: 90000
     });
@@ -217,6 +255,10 @@ if (process.argv.includes('--native')) {
     if (result.stdout) process.stdout.write(result.stdout);
     if (result.stderr) process.stderr.write(result.stderr);
     assert.equal(result.status, 0, `Vérification native échouée (${result.status})`);
+    const exactEngine=spawnSync('powershell.exe',['-NoProfile','-STA','-NonInteractive','-File',path.join(__dirname,'verify-legacy.ps1'),'-ScriptPath',path.join(temp,'interface-5.1.ps1'),'-ExpectedVersion','5.1'],{encoding:'utf8',timeout:30000});
+    if(exactEngine.stdout)process.stdout.write(exactEngine.stdout);
+    if(exactEngine.stderr)process.stderr.write(exactEngine.stderr);
+    assert.equal(exactEngine.status,0,`Essai sur le moteur exact échoué (${exactEngine.status})`);
   } finally {
     const root = path.resolve(os.tmpdir()) + path.sep;
     if (path.resolve(temp).startsWith(root)) fs.rmSync(temp, { recursive: true, force: true });

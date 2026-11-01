@@ -2,7 +2,7 @@
 
 Éditeur visuel d’interfaces Windows Forms avec export PowerShell. Application statique en français, sans dépendance, sans compilation et sans serveur applicatif.
 
-**Version de l’application : 1.6.0** (1er novembre 2026). Cette numérotation est distincte du format de projet JSON (`version: 1`) et de la version PowerShell ciblée.
+**Version de l’application : 1.7.0** (1er novembre 2026). Cette numérotation est distincte du format de projet JSON (`version: 1`) et de la version PowerShell ciblée.
 
 ## Fonctionnalités
 
@@ -12,11 +12,15 @@
 - Dans le canevas, glisser au clic gauche sur le fond vide autour de la fenêtre pour déplacer la vue ; cliquer avec la molette pour recentrer l’interface.
 - Fenêtre **Paramètres** : huit palettes de couleurs en version claire ou sombre, accent personnalisé, choix français/anglais et mémorisation locale.
 - Onglet **Visual scripting** : événements des composants, blocs d’interface, variables, conditions à créer par listes de choix, boucles, fichiers, actions et code PowerShell libre.
+- Recherche dans la palette de blocs, repli d’un bloc ou de tous les blocs et accès direct aux erreurs depuis la vérification du projet.
+- GroupBox et Panel peuvent contenir de vrais composants enfants, dans l’éditeur et dans le script Windows Forms exporté.
 - Choix de PowerShell 2.0, 3.0, 4.0, 5.1 ou 7 dans les propriétés de la fenêtre.
 - Régénération du code et téléchargement direct d’un `.ps1` UTF-8 avec BOM.
+- Vérification avant export : erreurs bloquantes pour les références absentes ou les champs requis vides, avertissements pour les variables possiblement non définies et certaines boucles.
 - Coloration syntaxique du code PowerShell : palette officielle du thème PowerShell ISE en mode clair, variante contrastée en mode sombre.
 - Commandes de mise en page illustrées par des icônes pour le centrage, l’alignement, les dimensions et l’espacement.
 - Enregistrement et ouverture des projets JSON, sauvegarde locale, annuler/rétablir.
+- Sauvegarde automatique des projets volumineux dans IndexedDB, ou quand `localStorage` est plein, avec état d’enregistrement visible.
 
 ## Utilisation locale
 
@@ -42,6 +46,10 @@ Exemple : pour changer un libellé trois fois au clic d’un bouton, ajouter **R
 
 Dans **Condition Si / Sinon** et **Tant que**, le mode par défaut utilise des listes : choisir une variable ou la propriété d’un composant, puis « est égal à », « est supérieur à », « contient », etc. La valeur à comparer peut être du texte, un nombre, vrai/faux, une autre variable ou une autre propriété. **Ajouter une condition** permet de combiner plusieurs règles avec **ET** ou **OU**. Par exemple : sélectionner la propriété **Coché** d’une case à cocher, choisir **est égal à**, **Vrai / Faux**, puis **Vrai**. Les variables proposées proviennent des blocs du projet ; placer **Définir une variable** avant sa lecture. Pour **Tant que**, une variable `continuer` peut être définie à `true` avant la boucle, puis à `false` dans sa branche **Faire** pour l’arrêter ; la limite de tours reste une protection. Les anciens projets qui contiennent une condition PowerShell écrite à la main restent en **mode avancé**.
 
+Dans la colonne des blocs, saisir un nom ou une fonction dans **Rechercher un bloc**. **Chercher dans les blocs** retrouve un bloc déjà placé, son titre ou une valeur saisie ; **Suivant** passe au résultat suivant. Utiliser la flèche d’un bloc ou **Tout replier / Tout déplier** pour parcourir les grands scripts. **Vérifier** présente les problèmes par composant et événement ; cliquer sur une ligne ouvre le bloc concerné. Les erreurs empêchent l’export, tandis que les avertissements peuvent être acceptés. Les expressions et le code PowerShell libres doivent toujours être testés sous Windows.
+
+Pour placer un composant dans un **Groupe visuel** ou un **Panneau visuel**, le déposer dans sa zone intérieure ou choisir le **Conteneur parent** dans ses propriétés. Le déplacement du conteneur entraîne ses enfants ; le dupliquer copie aussi ses descendants. Supprimer un conteneur rattache ses enfants à son parent, à la même position visible. Les anciens projets sans parent explicite restent compatibles ; le format JSON reste en version 1.
+
 ## Publication sur GitHub Pages
 
 1. Sur GitHub, créer un dépôt nommé `powershell-studio`. Un dépôt public convient à GitHub Pages avec GitHub Free : son code et le site seront accessibles publiquement.
@@ -58,7 +66,7 @@ Documentation : https://docs.github.com/en/pages/getting-started-with-github-pag
 
 ## Reprendre les projets de l’ancien site
 
-La sauvegarde automatique appartient au navigateur et à l’adresse du site. Elle ne se transfère pas automatiquement vers GitHub Pages. Sur l’ancien site, cliquer sur **Enregistrer**, puis importer le fichier `.psstudio.json` avec **Ouvrir** sur le nouveau site. Les projets personnels ne sont pas inclus dans cette archive.
+La sauvegarde automatique du navigateur appartient à l’adresse du site. Elle ne se transfère pas automatiquement vers GitHub Pages, qu’elle soit dans `localStorage` ou dans IndexedDB. Sur l’ancien site, cliquer sur **Enregistrer**, puis importer le fichier `.psstudio.json` avec **Ouvrir** sur le nouveau site. Les projets personnels ne sont pas inclus dans cette archive.
 
 ## Exécuter un script exporté
 
@@ -83,9 +91,9 @@ Si le fichier téléchargé est bloqué par la politique RemoteSigned, et après
 ## Limites et données
 
 - L’aperçu dans le navigateur peut différer légèrement des contrôles natifs Windows.
-- Les panneaux et groupes sont visuels : les contrôles restent rattachés à la fenêtre principale.
+- L’aperçu web de l’imbrication peut différer légèrement du rendu natif Windows Forms, en particulier autour des bordures des GroupBox.
 - L’éditeur ne lance pas de code PowerShell dans le navigateur.
-- La sauvegarde automatique utilise localStorage. Exporter régulièrement les projets avec **Enregistrer**.
+- La sauvegarde automatique utilise `localStorage` pour les petits projets et IndexedDB pour les projets volumineux ou quand le stockage local est plein. Ces données appartiennent au navigateur et à l’adresse du site : exporter régulièrement le JSON avec **Enregistrer**. Un message d’erreur reste visible si la sauvegarde échoue.
 - Les scripts doivent être testés sur les versions Windows/PowerShell ciblées. Les tests natifs exécutent les cibles 2.0 à 5.1 sur PowerShell 5.1 ; ils ne remplacent pas un essai sur chaque moteur historique.
 
 ## Fichiers
@@ -95,23 +103,26 @@ Si le fichier téléchargé est bloqué par la politique RemoteSigned, et après
 - `responsive.css` : adaptation aux écrans étroits et panneaux repliables.
 - `themes.css`, `settings.js` : palettes, réglages et mémorisation locale.
 - `syntax.css`, `syntax.js` : palette PowerShell ISE et coloration du code dans l’éditeur.
+- `features.css`, `diagnostics.js`, `storage.js` : styles des nouvelles commandes, vérification du projet et sauvegarde IndexedDB.
 - `i18n.js` : traduction français/anglais de l’éditeur et mémorisation de la langue.
 - `visual.css`, `visual-ui.js`, `visual-core.js` : éditeur de blocs et génération des événements PowerShell.
 - `core.js` : modèle de projet, validation et génération PowerShell.
 - `app.js` : édition, sauvegarde, zoom et interactions de l’interface.
 - `.nojekyll` : publication statique GitHub Pages.
 - `README.md` : ce guide.
-- `verify.cjs`, `verify-native.ps1` et `verify-browser.cjs` : vérifications locales facultatives ; ils ne sont pas chargés par le site.
+- `verify.cjs`, `verify-native.ps1`, `verify-legacy.ps1`, `verify-browser.cjs` et `verify-storage.cjs` : vérifications locales facultatives ; ils ne sont pas chargés par le site.
 
 ## Police, fond et ordre des calques
 
 - Dans Apparence, choisir la police, la taille, le gras, l’italique et le souligné. Les styles sont combinables et exportés vers PowerShell 2.0 à 7. La police doit être installée sur le poste Windows pour un rendu identique.
-- Fond opaque ou transparent pour Label, CheckBox, RadioButton, GroupBox et Panel. Sous Windows Forms, « transparent » reprend le fond du parent (ici la fenêtre) et ne révèle pas les composants placés derrière. La fenêtre et les autres contrôles restent opaques. Documentation : https://learn.microsoft.com/fr-fr/dotnet/desktop/winforms/controls/how-to-give-your-control-a-transparent-background
+- Fond opaque ou transparent pour Label, CheckBox, RadioButton, GroupBox et Panel. Sous Windows Forms, « transparent » reprend le fond du parent (fenêtre ou conteneur choisi) et ne révèle pas les composants placés derrière. La fenêtre et les autres contrôles restent opaques. Documentation : https://learn.microsoft.com/fr-fr/dotnet/desktop/winforms/controls/how-to-give-your-control-a-transparent-background
 - Dans l’explorateur, glisser un élément au-dessus ou au-dessous d’un autre : le haut représente le premier plan. Le trait indique la position de dépôt. Alt + flèche haut/bas permet aussi de réordonner le calque au clavier.
 - L’ordre est conservé dans le fichier projet et dans le script exporté. Annuler/rétablir prend en charge les déplacements de calques.
 - Les anciens fichiers projet restent compatibles ; les nouvelles propriétés sont initialisées avec des valeurs par défaut.
 
-Vérifications : `node verify.cjs` teste le modèle, la géométrie, la validation et les cinq cibles de génération. Sur Windows avec PowerShell 5.1, `node verify.cjs --native` vérifie la syntaxe des cinq scripts et exécute les formulaires ciblant 2.0 à 5.1 avec fermeture automatique. `node verify-browser.cjs` vérifie le chargement de la page avec Chrome ou Edge installé. Un résultat sur PowerShell 5.1 ne remplace pas un essai sur les moteurs PowerShell 2.0, 3.0 et 4.0 eux-mêmes. La cible 7 s’exécute avec `pwsh.exe` lorsqu’il est installé.
+Vérifications : `node verify.cjs` teste le modèle, la géométrie, la validation et les cinq cibles de génération. Sur Windows avec PowerShell 5.1, `node verify.cjs --native` vérifie la syntaxe des cinq scripts, exécute les formulaires ciblant 2.0 à 5.1 avec fermeture automatique et vérifie une imbrication native Panel → GroupBox → Bouton. Il tente aussi chaque moteur historique réellement installé et indique explicitement les versions absentes. `node verify-browser.cjs` vérifie l’éditeur dans Chrome ou Edge ; `node verify-storage.cjs` teste IndexedDB et le repli quand `localStorage` est plein. Un résultat sur PowerShell 5.1 ne remplace pas un essai sur les moteurs PowerShell 2.0, 3.0 et 4.0 eux-mêmes. La cible 7 s’exécute avec `pwsh.exe` lorsqu’il est installé.
+
+Sur une machine ou une machine virtuelle disposant réellement d’une ancienne version, exporter un `.ps1` ciblant cette version puis lancer, par exemple, `powershell.exe -STA -File .\verify-legacy.ps1 -ScriptPath .\interface.ps1 -ExpectedVersion 2.0`. Le vérificateur refuse un moteur différent et ferme automatiquement le formulaire après son ouverture. Copier `verify-legacy.ps1` avec le script exporté ; cette vérification exécute le script, y compris les éventuelles actions personnalisées lancées au chargement.
 
 ## Nouveautés — images et mise en page
 
@@ -127,6 +138,13 @@ Vérifications : `node verify.cjs` teste le modèle, la géométrie, la validati
 Ouvrir `index.html` pour utiliser l’application. Facultatif : `node verify.cjs` exécute les vérifications du modèle et du générateur sans dépendance. Les nouveaux réglages sont enregistrés dans le projet JSON. En sélection multiple, les propriétés individuelles concernent le dernier élément sélectionné ; les outils Mise en page concernent toute la sélection.
 
 ## Historique des versions
+
+### 1.7.0 — 1er novembre 2026
+
+- Sauvegarde automatique avec repli vers IndexedDB pour les grands projets et en cas de quota `localStorage` atteint ; avertissement visible en cas d’échec. Test dans Chrome/Edge avec un projet volumineux et un quota simulé.
+- Commande **Vérifier** et contrôle avant export : erreurs et avertissements cliquables menant au bloc concerné ; les erreurs empêchent l’export. Recherche des blocs et repli individuel ou global dans Visual scripting.
+- GroupBox et Panel deviennent des conteneurs Windows Forms réels. Parent configurable, dépôt dans le conteneur, déplacement des enfants, coordonnées relatives dans le `.ps1`, validation des cycles et conservation des anciens projets.
+- Vérification native d’un conteneur, détection des moteurs historiques disponibles et script de test pour les machines équipées de ces moteurs. Les moteurs absents sont signalés sans prétendre les avoir testés. Le site reste statique et compatible GitHub Pages.
 
 ### 1.6.0 — 1er novembre 2026
 
